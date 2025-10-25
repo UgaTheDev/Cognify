@@ -1,5 +1,7 @@
-import { X, BookOpen, Award, Clock, Users } from 'lucide-react'
+import { useState } from 'react'
+import { X, BookOpen, Award, Clock, Users, Plus } from 'lucide-react'
 import PrerequisiteFlow from './PrerequisiteFlow'
+import { usePlannerStore } from '../store/plannerStore'
 
 interface Course {
   id: string
@@ -40,6 +42,10 @@ const HUB_NAMES: Record<string, string> = {
 }
 
 export default function CourseDetailModal({ course, allCourses, onClose }: CourseDetailModalProps) {
+  const { semesters, addCourseToSemester } = usePlannerStore()
+  const [selectedSemester, setSelectedSemester] = useState(semesters[0]?.id || '')
+  const [showSuccess, setShowSuccess] = useState(false)
+
   const getLevelColor = (level: string) => {
     switch (level) {
       case 'Introductory': return 'bg-green-500 text-white'
@@ -54,14 +60,33 @@ export default function CourseDetailModal({ course, allCourses, onClose }: Cours
     return HUB_NAMES[code] || code
   }
 
+  const handleAddToPlan = () => {
+    if (!selectedSemester) return
+    
+    addCourseToSemester(selectedSemester, course)
+    setShowSuccess(true)
+    
+    setTimeout(() => {
+      setShowSuccess(false)
+      onClose()
+    }, 1500)
+  }
+
+  const isAlreadyInSemester = (semesterId: string) => {
+    const semester = semesters.find(s => s.id === semesterId)
+    return semester?.courses.some(c => c.id === course.id)
+  }
+
+  const isInAnyPlanner = semesters.some(s => s.courses.some(c => c.id === course.id))
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl h-[90vh] flex flex-col">
         {/* Header - Fixed */}
-        <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6 rounded-t-2xl flex-shrink-0">
+        <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6 rounded-t-2xl flex-shrink-0 relative">
           <button 
             onClick={onClose}
-            className="absolute top-4 right-4 text-white hover:bg-white/20 rounded-full p-2 transition-all duration-200"
+            className="absolute top-4 right-4 text-white hover:bg-white/20 rounded-full p-2 transition-all duration-200 z-10"
           >
             <X size={24} />
           </button>
@@ -82,6 +107,11 @@ export default function CourseDetailModal({ course, allCourses, onClose }: Cours
                 <span className={`${getLevelColor(course.level)} px-3 py-1.5 rounded-full text-sm font-bold shadow-md`}>
                   {course.level}
                 </span>
+                {isInAnyPlanner && (
+                  <span className="bg-green-500 text-white px-3 py-1.5 rounded-full text-sm font-bold shadow-md">
+                    ✓ In Your Plan
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -184,18 +214,59 @@ export default function CourseDetailModal({ course, allCourses, onClose }: Cours
         </div>
 
         {/* Footer - Fixed */}
-        <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 border-t-2 border-gray-200 rounded-b-2xl flex justify-end gap-3 flex-shrink-0">
-          <button
-            onClick={onClose}
-            className="px-5 py-2.5 bg-white hover:bg-gray-50 text-gray-700 rounded-xl font-bold border-2 border-gray-300 transition-all duration-200 shadow-sm"
-          >
-            Close
-          </button>
-          <button
-            className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl font-bold transition-all duration-200 shadow-lg"
-          >
-            Add to My Plan
-          </button>
+        <div className="bg-gradient-to-r from-gray-50 to-gray-100 p-4 border-t-2 border-gray-200 rounded-b-2xl flex items-center justify-between gap-3 flex-shrink-0">
+          {/* Semester Selector */}
+          <div className="flex items-center gap-3 flex-1">
+            <label className="text-sm font-bold text-gray-700">Add to:</label>
+            <select
+              value={selectedSemester}
+              onChange={(e) => setSelectedSemester(e.target.value)}
+              className="flex-1 max-w-xs px-4 py-2.5 border-2 border-gray-300 rounded-lg font-medium focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            >
+              {semesters.map((semester) => (
+                <option 
+                  key={semester.id} 
+                  value={semester.id}
+                  disabled={isAlreadyInSemester(semester.id)}
+                >
+                  {semester.name} {isAlreadyInSemester(semester.id) ? '(Already added)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="px-5 py-2.5 bg-white hover:bg-gray-50 text-gray-700 rounded-xl font-bold border-2 border-gray-300 transition-all duration-200 shadow-sm"
+            >
+              Close
+            </button>
+            <button
+              onClick={handleAddToPlan}
+              disabled={isAlreadyInSemester(selectedSemester)}
+              className={`px-5 py-2.5 rounded-xl font-bold transition-all duration-200 shadow-lg flex items-center gap-2 ${
+                showSuccess
+                  ? 'bg-green-600 text-white'
+                  : isAlreadyInSemester(selectedSemester)
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white'
+              }`}
+            >
+              {showSuccess ? (
+                <>
+                  <span>✓</span>
+                  <span>Added!</span>
+                </>
+              ) : (
+                <>
+                  <Plus size={18} />
+                  <span>Add to My Plan</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

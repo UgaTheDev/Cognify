@@ -5,3 +5,24 @@ __pycache__/
 *.pyc
 .DS_Store
 dist/
+
+# API Keys and Secrets
+.env
+.env.local
+.env.production
+*.key
+secrets/
+api_keys.txt
+
+# Environment variables
+ANTHROPIC_API_KEY
+GOOGLE_API_KEY
+
+# Environment and API Keys
+.env
+.env.local
+.env.production
+*.key
+api_keys.txt
+secrets/
+GOOGLE_API_KEY
