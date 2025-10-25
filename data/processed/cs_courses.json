@@ -1,0 +1,104 @@
+{
+  "metadata": {
+    "source": "BU TerrierGPT",
+    "department": "Computer Science",
+    "total_courses": 5
+  },
+  "courses": [
+    {
+      "id": "102500",
+      "code": "CS 111",
+      "subject": "CS",
+      "catalog_number": "111",
+      "title": "Introduction to Computer Science 1",
+      "short_title": "Intro CS 1",
+      "description": "First course for CS majors. Python programming.",
+      "credits": 4.0,
+      "component": "LEC",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": [],
+        "recommended": []
+      },
+      "hub_requirements": ["QR2", "CI", "CT"],
+      "level": "Introductory"
+    },
+    {
+      "id": "102504",
+      "code": "CS 112",
+      "subject": "CS",
+      "catalog_number": "112",
+      "title": "Introduction to Computer Science 2",
+      "short_title": "Intro CS 2",
+      "description": "Data structures and algorithms.",
+      "credits": 4.0,
+      "component": "LEC",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CS 111"],
+        "recommended": []
+      },
+      "hub_requirements": ["QR2", "CI", "CT"],
+      "level": "Introductory"
+    },
+    {
+      "id": "102519",
+      "code": "CS 210",
+      "subject": "CS",
+      "catalog_number": "210",
+      "title": "Computer Systems",
+      "short_title": "Computer Systems",
+      "description": "Hardware and software fundamentals of computer systems.",
+      "credits": 4.0,
+      "component": "LEC",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CS 112"],
+        "recommended": []
+      },
+      "hub_requirements": ["QR2"],
+      "level": "Intermediate"
+    },
+    {
+      "id": "102538",
+      "code": "CS 330",
+      "subject": "CS",
+      "catalog_number": "330",
+      "title": "Analysis of Algorithms",
+      "short_title": "Algorithms",
+      "description": "Algorithm design and analysis.",
+      "credits": 4.0,
+      "component": "LEC",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CS 112", "CS 131", "CS 132"],
+        "recommended": []
+      },
+      "hub_requirements": ["QR2", "CT"],
+      "level": "Advanced"
+    },
+    {
+      "id": "102654",
+      "code": "CS 585",
+      "subject": "CS",
+      "catalog_number": "585",
+      "title": "Image and Video Computing",
+      "short_title": "Image/Video",
+      "description": "Computer vision and image processing.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CS 112"],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Graduate"
+    }
+  ]
+}
