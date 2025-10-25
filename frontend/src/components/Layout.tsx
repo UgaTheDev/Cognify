@@ -1,15 +1,15 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation } from "react-router-dom";
 
 interface LayoutProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const location = useLocation()
+  const location = useLocation();
 
   const isActive = (path: string) => {
-    return location.pathname === path
-  }
+    return location.pathname === path;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -26,9 +26,9 @@ export default function Layout({ children }: LayoutProps) {
               <Link
                 to="/"
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  isActive('/')
-                    ? 'bg-red-800 text-white'
-                    : 'text-white hover:bg-red-800'
+                  isActive("/")
+                    ? "bg-red-800 text-white"
+                    : "text-white hover:bg-red-800"
                 }`}
               >
                 Home
@@ -36,9 +36,9 @@ export default function Layout({ children }: LayoutProps) {
               <Link
                 to="/explorer"
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  isActive('/explorer')
-                    ? 'bg-red-800 text-white'
-                    : 'text-white hover:bg-red-800'
+                  isActive("/explorer")
+                    ? "bg-red-800 text-white"
+                    : "text-white hover:bg-red-800"
                 }`}
               >
                 Explorer
@@ -46,19 +46,29 @@ export default function Layout({ children }: LayoutProps) {
               <Link
                 to="/planner"
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  isActive('/planner')
-                    ? 'bg-red-800 text-white'
-                    : 'text-white hover:bg-red-800'
+                  isActive("/planner")
+                    ? "bg-red-800 text-white"
+                    : "text-white hover:bg-red-800"
                 }`}
               >
                 Planner
               </Link>
               <Link
+                to="/professors"
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  isActive("/professors")
+                    ? "bg-red-800 text-white"
+                    : "text-white hover:bg-red-800"
+                }`}
+              >
+                Professors
+              </Link>
+              <Link
                 to="/progress"
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  isActive('/progress')
-                    ? 'bg-red-800 text-white'
-                    : 'text-white hover:bg-red-800'
+                  isActive("/progress")
+                    ? "bg-red-800 text-white"
+                    : "text-white hover:bg-red-800"
                 }`}
               >
                 Progress
@@ -69,9 +79,7 @@ export default function Layout({ children }: LayoutProps) {
       </nav>
 
       {/* Main Content */}
-      <main className="py-10 px-4 sm:px-6 lg:px-8">
-        {children}
-      </main>
+      <main className="py-10 px-4 sm:px-6 lg:px-8">{children}</main>
     </div>
-  )
+  );
 }
