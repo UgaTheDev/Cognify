@@ -1,0 +1,613 @@
+{
+  "metadata": {
+    "source": "BU TerrierGPT",
+    "department": "French Language & Literature",
+    "subject_code": "CASLF",
+    "total_courses": 39
+  },
+  "courses": [
+    {
+      "id": "106442",
+      "code": "CASLF 111",
+      "subject": "CASLF",
+      "catalog_number": "111",
+      "title": "First-Semester French",
+      "short_title": "First-Semester French",
+      "description": "A multimedia approach for students who have never studied French. A variety of communicative tasks develop speaking, listening, reading, and writing skills. Effective Fall 2020, this course fulfills a single unit in the following BU Hub area: The Individual in Community.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": [],
+        "recommended": []
+      },
+      "hub_requirements": ["Individual in Community"],
+      "level": "Introductory"
+    },
+    {
+      "id": "106440",
+      "code": "CASLF 111S",
+      "subject": "CASLF",
+      "catalog_number": "111S",
+      "title": "First-Semester French",
+      "short_title": "First-Semester French",
+      "description": "A multimedia approach for students who have never studied French. A variety of communicative tasks develop speaking, listening, reading, and writing skills. Effective Fall 2020, this course fulfills a single unit in the following BU Hub area: The Individual in Community.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": [],
+        "recommended": []
+      },
+      "hub_requirements": ["Individual in Community"],
+      "level": "Introductory"
+    },
+    {
+      "id": "106445",
+      "code": "CASLF 112",
+      "subject": "CASLF",
+      "catalog_number": "112",
+      "title": "Second-Semester French",
+      "short_title": "Second-Semester French",
+      "description": "Undergraduate Prerequisites: (CASLF111) or placement test results. - Continues CAS LF 111. A multimedia approach which develops speaking, reading, writing, and listening skills, together with the grammar and vocabulary needed for more complex communicative tasks. Effective Fall 2020, this course fulfills a single unit in the following BU Hub area: The Individual in Community.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 111"],
+        "recommended": []
+      },
+      "hub_requirements": ["Individual in Community"],
+      "level": "Introductory"
+    },
+    {
+      "id": "106444",
+      "code": "CASLF 112S",
+      "subject": "CASLF",
+      "catalog_number": "112S",
+      "title": "Second-Semester French",
+      "short_title": "Second-Semester French",
+      "description": "Undergraduate Prerequisites: (CASLF111) or placement test results. - Continues CAS LF 111. A multimedia approach which develops speaking, reading, writing, and listening skills, together with the grammar and vocabulary needed for more complex communicative tasks. Effective Fall 2020, this course fulfills a single unit in the following BU Hub area: The Individual in Community.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 111"],
+        "recommended": []
+      },
+      "hub_requirements": ["Individual in Community"],
+      "level": "Introductory"
+    },
+    {
+      "id": "106447",
+      "code": "CASLF 113",
+      "subject": "CASLF",
+      "catalog_number": "113",
+      "title": "Intensive Beginning French",
+      "short_title": "Intensive Beginning French",
+      "description": "Undergraduate Prerequisites: placement examination results. - Intensive French course for beginners or according to placement test results. Introduction to grammar, vocabulary, and structure of French, emphasizing the basic communication skills: listening, speaking, reading, and writing. (If CAS LF 111, 112, or a more advanced college-level course has been completed, this course cannot be taken for credit.) Effective Fall 2020, this course fulfills a single unit in the following BU Hub area: The Individual in Community.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": [],
+        "recommended": []
+      },
+      "hub_requirements": ["Individual in Community"],
+      "level": "Introductory"
+    },
+    {
+      "id": "106448",
+      "code": "CASLF 121",
+      "subject": "CASLF",
+      "catalog_number": "121",
+      "title": "First-Semester French for Reading",
+      "short_title": "FRNCH READNGS 1",
+      "description": "For beginners. Contrastive study of French and English spelling and pronunciation. Fundamentals of French grammar. Techniques of vocabulary building: cognate recognition and morphology. Reading, translation, and discussion of short literary and cultural texts written primarily in the present tense. Consult the Director of Student Affairs in the Department of Modern Foreign Languages and Literatures for more information on the scheduling of this course. (If CAS LF 111 or a more advanced French course has been completed, this course cannot be taken for credit.)",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": [],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Introductory"
+    },
+    {
+      "id": "106449",
+      "code": "CASLF 122",
+      "subject": "CASLF",
+      "catalog_number": "122",
+      "title": "Second-Semester French for Reading",
+      "short_title": "FRNCH READNGS 2",
+      "description": "Undergraduate Prerequisites: (CASLF121 OR CASLF111) or placement test results. - Completes study of basic grammatical structures with emphasis on contrastive analysis of French and English verb tenses. Expansion of vocabulary. Listening comprehension exercises. Reading of poetry, narrative, and expository prose. Compositions on cultural topics.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 121", "CASLF 111"],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Introductory"
+    },
+    {
+      "id": "106460",
+      "code": "CASLF 211E",
+      "subject": "CASLF",
+      "catalog_number": "211E",
+      "title": "3RD SEM FRENCH",
+      "short_title": "3RD SEM FRENCH",
+      "description": "Undergraduate Prerequisites: (CASLF112) or placement test results. - 3RD SEM FRENCH",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 112"],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Intermediate"
+    },
+    {
+      "id": "106463",
+      "code": "CASLF 211",
+      "subject": "CASLF",
+      "catalog_number": "211",
+      "title": "Third-Semester French",
+      "short_title": "3RD SEM FRENCH",
+      "description": "Undergraduate Prerequisites: (CASLF112) or placement test results. - Advances proficiency in speaking, writing, reading, and listening in a communicative classroom setting. Grammar studied is used in context through thematic discussions on topics ranging from daily life to Francophone culture, in short readings, and through diverse written tasks.Effective Fall 2020, this course fulfills a single unit in the following BU Hub area: The Individual in Community.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 112"],
+        "recommended": []
+      },
+      "hub_requirements": ["Individual in Community"],
+      "level": "Intermediate"
+    },
+    {
+      "id": "106461",
+      "code": "CASLF 211S",
+      "subject": "CASLF",
+      "catalog_number": "211S",
+      "title": "Third-Semester French",
+      "short_title": "3RD SEM FRENCH",
+      "description": "Undergraduate Prerequisites: (CASLF112) or placement test results. - Advances proficiency in speaking, writing, reading, and listening in a communicative classroom setting. Grammar is studied in context, through thematic discussions on topics such as daily life and Francophone culture, through short readings, and through diverse written tasks. Effective Fall 2020, this course fulfills a single unit in the following BU Hub area: The Individual in Community.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 112"],
+        "recommended": []
+      },
+      "hub_requirements": ["Individual in Community"],
+      "level": "Intermediate"
+    },
+    {
+      "id": "106464",
+      "code": "CASLF 212E",
+      "subject": "CASLF",
+      "catalog_number": "212E",
+      "title": "4TH SEM FRENCH",
+      "short_title": "4TH SEM FRENCH",
+      "description": "Undergraduate Prerequisites: (CASLF211) or placement test results. - 4TH SEM FRENCH",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 211"],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Intermediate"
+    },
+    {
+      "id": "106466",
+      "code": "CASLF 212",
+      "subject": "CASLF",
+      "catalog_number": "212",
+      "title": "Fourth-Semester French",
+      "short_title": "4TH SEM FRENCH",
+      "description": "Undergraduate Prerequisites: (CASLF211) or placement test results. - Advances proficiency in French in a communicative setting through thematic discussions on diverse, contemporary topics and media, short readings, and written tasks. Fulfills CAS second language requirement, prepares for Level 1 Advanced Courses (CAS LF 307 -- LF 311). Effective Fall 2018, this course fulfills a single unit in the following BU Hub area: Global Citizenship and Intercultural Literacy. Effective Fall 2020, this course fulfills a single unit in the following BU Hub areas: The Individual in Community, Global Citizenship and Intercultural Literacy.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 211"],
+        "recommended": []
+      },
+      "hub_requirements": [
+        "Individual in Community",
+        "Global Citizenship and Intercultural Literacy"
+      ],
+      "level": "Intermediate"
+    },
+    {
+      "id": "106465",
+      "code": "CASLF 212S",
+      "subject": "CASLF",
+      "catalog_number": "212S",
+      "title": "Fourth-Semester French",
+      "short_title": "4TH SEM FRENCH",
+      "description": "Undergraduate Prerequisites: (CASLF211) or placement test results. - Advances proficiency in French in a communicative setting through thematic discussions on diverse, contemporary topics and media, short readings, and written tasks. Fulfills CAS second language requirement; prepares for Level 1 Advanced Courses (CAS LF 307 through LF 311). Effective Fall 2020, this course fulfills a single unit in each of the following BU Hub areas: The Individual in Community, Global Citizenship and Intercultural Literacy.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 211"],
+        "recommended": []
+      },
+      "hub_requirements": [
+        "Individual in Community",
+        "Global Citizenship and Intercultural Literacy"
+      ],
+      "level": "Intermediate"
+    },
+    {
+      "id": "106468",
+      "code": "CASLF 221",
+      "subject": "CASLF",
+      "catalog_number": "221",
+      "title": "Third-Semester French for Reading",
+      "short_title": "FRNCH READNGS 3",
+      "description": "Develops proficiency in translating French. Begins with intensive grammar review and close readings of short literary texts and culminates with the study of a mystery novel by Simenon. Study of Francophone culture through film and music. (Students intending to continue in CAS LF 303 must take LF 211, not 221.)",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": [],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Intermediate"
+    },
+    {
+      "id": "106467",
+      "code": "CASLF 221S",
+      "subject": "CASLF",
+      "catalog_number": "221S",
+      "title": "FRNCH READNGS 3",
+      "short_title": "FRNCH READNGS 3",
+      "description": "FRNCH READNGS 3",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": [],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Intermediate"
+    },
+    {
+      "id": "106470",
+      "code": "CASLF 222",
+      "subject": "CASLF",
+      "catalog_number": "222",
+      "title": "Fourth-Semester French for Reading",
+      "short_title": "FRNCH READNGS 4",
+      "description": "Refines accuracy and fluency of reading and translation skills. Develops an appreciation of complex sentence structures, idiomatic usage, and writing styles through study of a contemporary novel and play, newspaper articles, songs, films, and comic strips. Fulfills CAS language requirement. (Students intending to continue in CAS LF 303 must take LF 212, not LF 222.)",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": [],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Intermediate"
+    },
+    {
+      "id": "106469",
+      "code": "CASLF 222S",
+      "subject": "CASLF",
+      "catalog_number": "222S",
+      "title": "FRNCH READNGS 4",
+      "short_title": "FRNCH READNGS 4",
+      "description": "FRNCH READNGS 4",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": [],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Intermediate"
+    },
+    {
+      "id": "106475",
+      "code": "CASLF 223",
+      "subject": "CASLF",
+      "catalog_number": "223",
+      "title": "Second-Year Intensive French",
+      "short_title": "SECND YR FRENCH",
+      "description": "Intensive course equivalent to two semesters of second-year college French. Reinforces and extends oral and written skills through grammar review, compositions, discussion of literature and films; a dramatized novel is studied in the language lab. Conducted in French. Eight hours weekly. Successful completion of course satisfies CAS language requirement.",
+      "credits": 8.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": [],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Intermediate"
+    },
+    {
+      "id": "106476",
+      "code": "CASLF 241E",
+      "subject": "CASLF",
+      "catalog_number": "241E",
+      "title": "French Civilization",
+      "short_title": "FRENCH CIVIL",
+      "description": "This course meets three hours a week and includes an introduction to French culture from the Middle Ages to the present. The readings, in French and English, focus on major historical figures and events around which French myths, political institutions, and artistic movements have crystallized. The focus of study each year is determined by the resident director, who teaches the course. Students present oral reports, including a final presentation in French; prepare short written papers; and take a midterm and a final exam. This course begins in English and shifts gradually into French as students' fluency increases.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": [],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Intermediate"
+    },
+    {
+      "id": "106484",
+      "code": "CASLF 286",
+      "subject": "CASLF",
+      "catalog_number": "286",
+      "title": "French Cinema (in English translation)",
+      "short_title": "FRENCH CINE ET",
+      "description": "Analysis of major films by Renoir, Clair, Vigo, Carne, Malle, Resnais, Bresson, Ophuls, Godard, Cocteau, and Truffaut. Weekly screenings, reading of criticism. Lectures and discussions in English.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": [],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Intermediate"
+    },
+    {
+      "id": "106490",
+      "code": "CASLF 303E",
+      "subject": "CASLF",
+      "catalog_number": "303E",
+      "title": "COMP/CONV FR I",
+      "short_title": "COMP/CONV FR 1",
+      "description": "Undergraduate Prerequisites: (CASLF212) or equivalent, or placement test results. - COMP/CONV FR 1",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 212"],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Advanced"
+    },
+    {
+      "id": "106495",
+      "code": "CASLF 303",
+      "subject": "CASLF",
+      "catalog_number": "303",
+      "title": "French Composition and Conversation I",
+      "short_title": "COMP/CONV FR 1",
+      "description": "Undergraduate Prerequisites: (CASLF212) or equivalent, or placement test results. - Topics-based courses exploring various aspects of French and Francophone literature, culture, and society. In the context of each section's unique theme, students advance proficiency in speaking, writing, reading, and listening. Students may repeat LF 303 for credit once, but only if the second topic is different. Topic for Spring 2017 Section A1: Cross Continental Connections. Topic for Spring 2017 Section B1: French for Business. Topic Spring 2017 C1: French through Media. Topic Spring 2017 D1: Secret Lies and Family Ties. Topic Spring 2017 E1: Mythes et histoire dans la diaspora africaine.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": true,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 212"],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Advanced"
+    },
+    {
+      "id": "106497",
+      "code": "CASLF 304E",
+      "subject": "CASLF",
+      "catalog_number": "304E",
+      "title": "Composition and Conversation I, II",
+      "short_title": "COMP/CONV FR 2",
+      "description": "Undergraduate Prerequisites: (CASLF303) or equivalent, or placement test results. - Development of sophistication in handling the spoken and written language in social and academic situations. Grammar review, writing, pronunciation, comprehension, conversation, and vocabulary building. Three hours of class meetings and one hour of lab required weekly. Students with A- or better in CAS LF 303 may advance to CAS LF 305 or 306.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 303"],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Advanced"
+    },
+    {
+      "id": "106500",
+      "code": "CASLF 304",
+      "subject": "CASLF",
+      "catalog_number": "304",
+      "title": "Composition and Conversation II",
+      "short_title": "COMP/CONV FR 2",
+      "description": "Undergraduate Prerequisites: (CASLF303) or equivalent, or placement test results. - Develops increased fluency and a more nuanced use of spoken and written French through discussion of contemporary fiction and film. Reading of articles from the press to explore current and historical issues in French society.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 303"],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Advanced"
+    },
+    {
+      "id": "106503",
+      "code": "CASLF 305",
+      "subject": "CASLF",
+      "catalog_number": "305",
+      "title": "Advanced Written Expression",
+      "short_title": "ADV WRITTEN EXP",
+      "description": "Undergraduate Prerequisites: placement test, CAS LF 212, one other course at the 300-level; or consent of instructor. - For Fall 2021: CAS LF 313 A1 Translation strategies: Examines the practice of transferring meaning from and into French through a wide variety of texts and media. Students develop language skills and cultural awareness by exploring literary, technical, legal, and audiovisual texts. Techniques of literary translation: Practice in the translation--from and into French--of different forms of literary prose and poetry.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 212"],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Advanced"
+    },
+    {
+      "id": "106504",
+      "code": "CASLF 306E",
+      "subject": "CASLF",
+      "catalog_number": "306E",
+      "title": "Advanced Oral Expression",
+      "short_title": "ADV ORAL EXPRES",
+      "description": "Undergraduate Prerequisites: At least one Level 1 Advanced Course (CAS LF 303, 307, 308, 309, 310, 311) or equivalent; or placement test results. - Advanced training in rapid and idiomatic French speech. Discussions of selected topics; individual oral reports. Lexicology and semantics as applied to oral French. Lab required.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 303"],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Advanced"
+    },
+    {
+      "id": "106507",
+      "code": "CASLF 306",
+      "subject": "CASLF",
+      "catalog_number": "306",
+      "title": "Advanced Oral Expression",
+      "short_title": "ADV ORAL EXPRES",
+      "description": "Advanced training in rapid and idiomatic French speech. Oral reports. Role playing; vocabulary building; targeted work on pronunciation, intonation, and aural comprehension. Lab required.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": [],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Advanced"
+    },
+    {
+      "id": "106523",
+      "code": "CASLF 340",
+      "subject": "CASLF",
+      "catalog_number": "340",
+      "title": "France Past to Postmodern: French Civilization Through Film",
+      "short_title": "FR CIV THR FILM",
+      "description": "Undergraduate Prerequisites: (CASLF304) - Examines France's classic cultural symbols and evolution from monarchy into the revolutionary nation that introduced notions of Liberty, Equality, and Fraternity. Survey of events in today's post-modern and post-colonial state. Uses film, video, articles to explore contemporary culture and politics.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 304"],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Advanced"
+    },
+    {
+      "id": "106527",
+      "code": "CASLF 342E",
+      "subject": "CASLF",
+      "catalog_number": "342E",
+      "title": "Paris Esthtique",
+      "short_title": "FRANC THRU ARTS",
+      "description": "Undergraduate Prerequisites: (CASLF212) and enrollment in the Paris Internship Program. - Follows the politics of culture, notably through works of literature and film currently the object of interest in Paris. Reflects on how these chosen works are of socioeconomic concern. Also assesses the state of politics of culture peculiar to France.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 212"],
+        "recommended": []
+      },
+      "hub_requirements": [],
+      "level": "Advanced"
+    },
+    {
+      "id": "106539",
+      "code": "CASLF 350",
+      "subject": "CASLF",
+      "catalog_number": "350",
+      "title": "Reading the French Way",
+      "short_title": "Reading the French Way",
+      "description": "Undergraduate Prerequisites: At least one Level 1 Advanced Course (CASLF 303, 307, 308, 309, 310, 311) or equivalent; or placement test results. First Year Writing Seminar (e.g., WR 100 or WR 120). - Development of techniques for reading and interpreting French literary texts. Special attention to the study of lyric poetry, drama, and short narrative. Effective Fall 2018, this course fulfills a single unit in each of the following BU Hub areas: Aesthetic Exploration, Global Citizenship and Intercultural Literacy, Writing-Intensive Course.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 303"],
+        "recommended": []
+      },
+      "hub_requirements": [
+        "Aesthetic Exploration",
+        "Global Citizenship and Intercultural Literacy",
+        "Writing-Intensive Course"
+      ],
+      "level": "Advanced"
+    },
+    {
+      "id": "106540",
+      "code": "CASLF 351",
+      "subject": "CASLF",
+      "catalog_number": "351",
+      "title": "Introduction to the French Novel",
+      "short_title": "Intro to the French Novel",
+      "description": "Undergraduate Prerequisites: (CASLF350) First Year Writing Seminar (e.g., WR 100 or WR 120). - Close readings in the French novel from 19th century to contemporary times. Attention to narration, themes, symbols, and schools. Investigation of the roman d'analyse, realist fiction, anti-colonialist, and other types of narrative. Carries humanities divisional credit in CAS. Effective Fall 2018, this course fulfills a single unit in each of the following BU Hub areas: Aesthetic Exploration, Global Citizenship and Intercultural Literacy, Writing-Intensive Course.",
+      "credits": 4.0,
+      "component": "IND",
+      "repeatable": false,
+      "consent_required": false,
+      "prerequisites": {
+        "required": ["CASLF 350"],
+        "recommended": []
+      },
+      "hub_requirements": [
+        "Aesthetic Exploration",
+        "Global Citizenship and Intercultural Literacy",
+        "Writing-Intensive Course"
+      ],
+      "level": "Advanced"
+    }
+  ]
+}
