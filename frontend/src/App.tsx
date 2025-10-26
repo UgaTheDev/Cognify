@@ -4,8 +4,8 @@ import Home from "./pages/Home";
 import Explorer from "./pages/Explorer";
 import Planner from "./pages/Planner";
 import Progress from "./pages/Progress";
-import ProfessorTest from "./pages/ProfessorTest";
 import AllProfessors from "./components/AllProfessors";
+import ProfessorDetails from "./components/ProfessorDetails"; // Import the correct component
 
 function App() {
   return (
@@ -17,10 +17,11 @@ function App() {
           <Route path="/planner" element={<Planner />} />
           <Route path="/progress" element={<Progress />} />
           <Route path="/professors" element={<AllProfessors />} />
+          {/* Change this to use ProfessorDetails */}
+          <Route path="/professor/:name" element={<ProfessorDetails />} />
         </Routes>
       </Layout>
     </Router>
   );
 }
-
 export default App;

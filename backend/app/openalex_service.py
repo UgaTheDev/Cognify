@@ -115,7 +115,6 @@ def generate_research_summary(author_data: Dict, works: List[Dict]) -> str:
             summary += f"- {title} ({year}) - {citations} citations\n"
     
     return summary
-
 def generate_cold_email(
     professor_name: str,
     research_summary: str,
@@ -161,9 +160,39 @@ Best regards,
 
 Generate the email:"""
 
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(prompt)
+        # Use the available Gemini 2.0 models
+        model_names = [
+            'models/gemini-2.0-flash',           # Fast and efficient
+            'models/gemini-2.0-flash-001',       # Specific version
+            'models/gemini-2.0-flash-exp',       # Experimental version
+            'models/gemini-2.0-pro-exp',         # Pro experimental
+            'models/gemini-pro-latest',          # Pro latest
+            'models/gemini-flash-latest',        # Flash latest
+        ]
         
-        return response.text
+        successful_response = None
+        last_error = None
+        
+        for model_name in model_names:
+            try:
+                print(f"Trying model: {model_name}")
+                model = genai.GenerativeModel(model_name)
+                response = model.generate_content(prompt)
+                
+                if response.text:
+                    successful_response = response.text
+                    print(f"Success with model: {model_name}")
+                    break
+                    
+            except Exception as e:
+                last_error = str(e)
+                print(f"Model {model_name} failed: {e}")
+                continue
+        
+        if successful_response:
+            return successful_response
+        else:
+            return f"Error: No working model found. Last error: {last_error}\n\nPlease check your GOOGLE_API_KEY and try again."
+                
     except Exception as e:
         return f"Error generating email: {str(e)}\n\nPlease check your GOOGLE_API_KEY in the .env file."
