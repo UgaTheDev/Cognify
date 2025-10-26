@@ -412,6 +412,159 @@ async def generate_professor_email(request: dict):
         "research_areas": [c.get('display_name') for c in author_data.get('x_concepts', [])[:5]]
     }
 
+@router.post("/api/chatbot/")
+async def chatbot_conversation(request: dict):
+    """AI chatbot for course planning assistance"""
+    from app.config import Config
+    
+    user_message = request.get("message", "")
+    chat_history = request.get("history", [])
+    
+    if not user_message:
+        raise HTTPException(status_code=400, detail="Message is required")
+    
+    courses = get_all_courses()
+    course_count = len(courses)
+    
+    # Get sample schools for better responses
+    schools = set()
+    for course in courses[:50]:  # Sample first 50 courses
+        if school := course.get('school'):
+            schools.add(school)
+    school_list = ", ".join(sorted(list(schools))[:10])
+    
+    website_knowledge = f"""
+WEBSITE STRUCTURE & NAVIGATION:
+The BU Course Planner has 5 main sections accessible from the top navigation bar:
+
+1. HOME (/) - Landing page with overview and quick access buttons
+2. EXPLORER (/explorer) - Browse and search {course_count} BU courses with filters
+3. PLANNER (/planner) - Drag-and-drop semester planning with PDF export
+4. PROGRESS (/progress) - AI career advisor for personalized course recommendations
+5. PROFESSORS (/professors) - Research faculty publications and generate cold emails
+
+KEY FEATURES & HOW TO USE THEM:
+
+📚 COURSE SEARCH (Explorer page):
+- Use the search bar to find courses by name, code, or keyword
+- Filter by school: {school_list}, and more
+- Filter by level: Introductory, Intermediate, Advanced, Graduate
+- Click any course card to see full details
+
+📅 SEMESTER PLANNING (Planner page):
+- Click "Add Semester" button to create a new semester
+- Drag courses from the left sidebar into semester boards
+- Prerequisites are validated automatically
+- Export your plan to PDF with the "Export to PDF" button
+- Visual prerequisite flow shows course dependencies
+
+🎯 CAREER ADVISOR (Progress page):
+- Choose from preset career paths OR enter a custom career goal
+- AI analyzes your goal and recommends optimal courses
+- See required skills and skill coverage percentage
+- Click "Get Recommendations" to get AI-powered advice
+
+👨🏫 PROFESSOR RESEARCH (Professors page):
+- Browse all BU professors by department
+- Click a professor's name to see their research and publications
+- View research areas from OpenAlex database
+- Generate AI-powered professional cold emails
+
+NAVIGATION TIPS:
+- All main pages are accessible from the top navigation bar
+- Home page has quick action buttons for each feature
+- Use the chatbot (me!) anytime for help navigating
+"""
+    
+    # Provide rule-based responses for common questions when API is not available
+    def get_fallback_response(message: str) -> str:
+        msg_lower = message.lower()
+        
+        # Navigation questions
+        if any(word in msg_lower for word in ['find', 'search', 'look for', 'where']) and 'course' in msg_lower:
+            return "To search for courses, go to the **Explorer** page (click 'Explorer' in the top menu). You can use the search bar to find courses by name or code, and use the filters to narrow by school or level."
+        
+        if 'plan' in msg_lower and any(word in msg_lower for word in ['semester', 'schedule']):
+            return "To plan your semesters, go to the **Planner** page (click 'Planner' in the top menu). Click 'Add Semester' to create a semester, then drag courses from the left sidebar into your semester boards. You can export your plan to PDF when done!"
+        
+        if 'career' in msg_lower or 'recommendation' in msg_lower:
+            return "For career advice and course recommendations, go to the **Progress** page (click 'Progress' in the top menu). You can browse preset career paths or enter your own custom career goal to get AI-powered course recommendations!"
+        
+        if 'professor' in msg_lower or 'faculty' in msg_lower:
+            return "To research professors, go to the **Professors** page (click 'Professors' in the top menu). You can browse by department, view their publications, and even generate professional cold emails to reach out to them."
+        
+        if 'export' in msg_lower or 'pdf' in msg_lower:
+            return "To export your semester plan to PDF, go to the **Planner** page and click the 'Export to PDF' button at the top. Make sure you've added some courses to your semesters first!"
+        
+        if any(word in msg_lower for word in ['navigate', 'use', 'how', 'help', 'guide']):
+            return f"""I can help you navigate the BU Course Planner! Here are the main sections:
+
+📚 **Explorer** - Search and browse {course_count} courses
+📅 **Planner** - Drag-and-drop semester planning
+🎯 **Progress** - Get AI career recommendations
+👨🏫 **Professors** - Research faculty and publications
+
+What would you like to do? I can give you specific directions!"""
+        
+        # Default response
+        return f"""I'm here to help you navigate the BU Course Planner! The site has 5 main sections:
+
+• **Home** - Overview and quick links
+• **Explorer** - Search {course_count} BU courses
+• **Planner** - Plan your semesters with drag-and-drop
+• **Progress** - Get AI career advice
+• **Professors** - Research faculty
+
+What would you like help with? Ask me about finding courses, planning semesters, career recommendations, or researching professors!"""
+    
+    # Check if API key is configured
+    if not Config.GOOGLE_API_KEY:
+        # Provide helpful fallback response
+        fallback = get_fallback_response(user_message)
+        return {
+            "response": fallback,
+            "model": "fallback",
+            "message": user_message
+        }
+    
+    # Use AI if API key is available
+    from app.ai_advisor import generate_ai_response
+    
+    context = f"""You are an AI assistant for the BU Course Planner website. You help Boston University students with course planning and navigating the website.
+
+{website_knowledge}
+
+Previous conversation:
+{chr(10).join([f"{msg['role']}: {msg['content']}" for msg in chat_history[-5:]])}
+
+Current user question: {user_message}
+
+INSTRUCTIONS:
+- Be helpful, friendly, and conversational
+- Give specific navigation directions (e.g., "Click on 'Explorer' in the top menu")
+- Reference the exact page names and button labels from the website structure above
+- Suggest relevant features based on user needs
+- Keep responses concise (2-4 sentences) but informative
+- Use emojis sparingly for visual appeal
+- If asked about courses, mention that there are {course_count} courses available
+- Guide users to the right page for their needs with clear step-by-step directions"""
+    
+    try:
+        response = await generate_ai_response(context)
+        return {
+            "response": response.get("result", ""),
+            "model": response.get("model", ""),
+            "message": user_message
+        }
+    except Exception as e:
+        # If AI fails, use fallback
+        fallback = get_fallback_response(user_message)
+        return {
+            "response": fallback,
+            "model": "fallback",
+            "message": user_message
+        }
+
 @router.get("/api/ai-models/")
 async def list_ai_models():
     """List available AI models"""
