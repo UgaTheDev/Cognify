@@ -435,7 +435,7 @@ async def chatbot_conversation(request: dict):
     
     website_knowledge = f"""
 WEBSITE STRUCTURE & NAVIGATION:
-The BU Course Planner has 5 main sections accessible from the top navigation bar:
+The Cognify BU Course Planner has 5 main sections accessible from the top navigation bar:
 
 1. HOME (/) - Landing page with overview and quick access buttons
 2. EXPLORER (/explorer) - Browse and search {course_count} BU courses with filters

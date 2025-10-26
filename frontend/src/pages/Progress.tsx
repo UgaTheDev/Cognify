@@ -1,236 +1,79 @@
-import { usePlannerStore } from '../store/plannerStore'
-import { CircularProgressbar, buildStyles } from 'react-circular-progressbar'
-import 'react-circular-progressbar/dist/styles.css'
-import { Award, BookOpen, CheckCircle, TrendingUp } from 'lucide-react'
-import { useState } from 'react'
-import type { ChangeEvent } from 'react'
-import { callGemini } from '../services/api'
-
-function PromptBox() {
-  const [promptText, setPromptText] = useState<string>('')
-  const [response, setResponse] = useState<any>('')
-  const [loading, setLoading] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
-
-  async function handleSend() {
-    setError(null)
-    setResponse('')
-    if (!promptText.trim()) {
-      setError('Please enter a prompt')
-      return
-    }
-
-    setLoading(true)
-    try {
-      const res = await callGemini({ prompt: promptText })
-      const data = res.data
-      
-      if (data.error) {
-        throw new Error(data.error.message || JSON.stringify(data.error))
-      }
-
-      // If backend returned a structured object (e.g., career recommendations), keep it
-      if (typeof data === 'object' && (data.recommended_courses || data.career_analysis || data.result === undefined)) {
-        setResponse(data)
-      } else if (data.result && typeof data.result === 'string') {
-        // Try to parse JSON embedded in the result text
-        try {
-          const parsed = JSON.parse(data.result)
-          setResponse(parsed)
-        } catch (_e) {
-          // Not JSON, just show text
-          setResponse(String(data.result))
-        }
-      } else if (data.output) {
-        setResponse(data.output)
-      } else {
-        setResponse(data)
-      }
-    } catch (err: any) {
-      const errorMessage = err?.response?.data?.detail || 
-                         err?.response?.data?.error?.message ||
-                         err?.message || 
-                         'Request failed'
-      setError(errorMessage)
-      console.error('AI Assistant Error:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      {/* Input Area */}
-      <div className="border rounded-lg overflow-hidden">
-        <div className="bg-gray-50 px-4 py-2 border-b">
-          <span className="font-medium text-gray-700">Ask a Question</span>
-        </div>
-        <div className="p-4">
-          <textarea
-            value={promptText}
-            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setPromptText(e.target.value)}
-            className="w-full border rounded-md px-4 py-2 text-base focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            rows={3}
-            placeholder="Ask about your degree progress, course recommendations, or any academic questions..."
-          />
-          <div className="mt-3 flex items-center justify-between">
-            <button
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              onClick={handleSend}
-              disabled={loading}
-            >
-              {loading ? 'Processing...' : 'Ask AI'}
-            </button>
-            {error && (
-              <div className="text-sm text-red-600 bg-red-50 px-3 py-1 rounded-md">
-                {error}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Response Area */}
-      <div className="mt-6 border rounded-lg overflow-hidden">
-        <div className="bg-gray-50 px-4 py-2 border-b">
-          <span className="font-medium text-gray-700">Response</span>
-        </div>
-        <div className="p-4 min-h-[100px] bg-white">
-          {loading ? (
-            <div className="text-gray-500 italic">Thinking...</div>
-          ) : response ? (
-            typeof response === 'object' ? (
-              // Render career recommendation-like structured response
-              <div className="space-y-4">
-                {response.career_analysis && (
-                  <div className="text-gray-800 text-base leading-relaxed">
-                    <div className="font-semibold mb-2">Analysis</div>
-                    <div>{response.career_analysis}</div>
-                  </div>
-                )}
-
-                {response.required_skills && (
-                  <div>
-                    <div className="font-semibold">Required Skills</div>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {response.required_skills.map((s: string) => (
-                        <span key={s} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">{s}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {response.recommended_courses && (
-                  <div>
-                    <div className="font-semibold mb-2">Recommended Courses</div>
-                    <div className="space-y-2">
-                      {response.recommended_courses.map((rc: any, idx: number) => (
-                        <div key={idx} className="p-3 border rounded-lg bg-gray-50">
-                          <div className="font-bold">{rc.code}</div>
-                          {rc.relevance && <div className="text-sm text-gray-700">{rc.relevance}</div>}
-                          {rc.skills_taught && (
-                            <div className="mt-2 text-xs text-gray-600">Skills: {rc.skills_taught.join(', ')}</div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Fallback: show raw JSON */}
-                {!response.career_analysis && !response.recommended_courses && (
-                  <pre className="whitespace-pre-wrap text-sm text-gray-800">{JSON.stringify(response, null, 2)}</pre>
-                )}
-              </div>
-            ) : (
-              <div className="prose max-w-none">
-                <div className="text-gray-800 text-base leading-relaxed whitespace-pre-wrap">
-                  {response}
-                </div>
-              </div>
-            )
-          ) : (
-            <div className="text-gray-400 italic">
-              No response yet. Try asking a question above.
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
+import { usePlannerStore } from "../store/plannerStore";
+import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
+import "react-circular-progressbar/dist/styles.css";
+import { BookOpen, CheckCircle, TrendingUp } from "lucide-react";
 
 export default function Progress() {
-  const { semesters } = usePlannerStore()
+  const { semesters } = usePlannerStore();
 
   // Calculate stats
-  const allCourses = semesters.flatMap(s => s.courses)
-  const totalCredits = allCourses.reduce((sum, c) => sum + c.credits, 0)
-  const uniqueCourses = new Set(allCourses.map(c => c.code)).size
-  
-  // Degree requirements (example - adjust based on BU CS requirements)
+  const allCourses = semesters.flatMap((s) => s.courses);
+  const totalCredits = allCourses.reduce((sum, c) => sum + c.credits, 0);
+  const uniqueCourses = new Set(allCourses.map((c) => c.code)).size;
+
+  // Calculate hub units dynamically by counting total hub areas satisfied
+  // Each course has a hub_areas object where keys are hub area names
+  const totalHubUnits = allCourses.reduce((sum, c) => {
+    // Count the number of hub areas this course satisfies
+    if (c.hub_areas && typeof c.hub_areas === "object") {
+      return sum + Object.keys(c.hub_areas).length;
+    } else if (c.hub_requirements && Array.isArray(c.hub_requirements)) {
+      // Fallback for courses with hub_requirements array
+      return sum + c.hub_requirements.length;
+    }
+    return sum;
+  }, 0);
+
+  // Calculate hub areas satisfied
+  const hubAreasSatisfied = new Set<string>();
+  allCourses.forEach((course) => {
+    if (course.hub_areas && typeof course.hub_areas === "object") {
+      Object.keys(course.hub_areas).forEach((hub) =>
+        hubAreasSatisfied.add(hub)
+      );
+    } else if (
+      course.hub_requirements &&
+      Array.isArray(course.hub_requirements)
+    ) {
+      course.hub_requirements.forEach((hub) => hubAreasSatisfied.add(hub));
+    }
+  });
+
+  // Degree requirements (BU standard requirements)
   const DEGREE_REQUIREMENTS = {
     totalCredits: 128,
-    csCoreCredits: 48,
-    hubCredits: 40,
-    electiveCredits: 40
-  }
+    hubCredits: 26, // BU Hub requires 26 units total
+  };
 
-  // Calculate progress
-  const overallProgress = Math.min(Math.round((totalCredits / DEGREE_REQUIREMENTS.totalCredits) * 100), 100)
-  const csProgress = Math.min(Math.round((totalCredits / DEGREE_REQUIREMENTS.csCoreCredits) * 100), 100)
+  // Calculate progress percentages
+  const overallProgress = Math.min(
+    Math.round((totalCredits / DEGREE_REQUIREMENTS.totalCredits) * 100),
+    100
+  );
+  const hubProgress = Math.min(
+    Math.round((totalHubUnits / DEGREE_REQUIREMENTS.hubCredits) * 100),
+    100
+  );
 
   // Estimate graduation
-  const averageCreditsPerSemester = totalCredits / semesters.filter(s => s.courses.length > 0).length || 0
-  const remainingCredits = DEGREE_REQUIREMENTS.totalCredits - totalCredits
-  const semestersRemaining = Math.ceil(remainingCredits / Math.max(averageCreditsPerSemester, 15))
-
-  // Skills gained
-  const allSkills = new Set<string>()
-  allCourses.forEach(course => {
-    if (course.code === 'CS 111') {
-      allSkills.add('Python')
-      allSkills.add('Programming Fundamentals')
-    } else if (course.code === 'CS 112') {
-      allSkills.add('Data Structures')
-      allSkills.add('Algorithms')
-      allSkills.add('Object-Oriented Programming')
-    } else if (course.code === 'CS 210') {
-      allSkills.add('Computer Systems')
-      allSkills.add('C Programming')
-    } else if (course.code === 'CS 330') {
-      allSkills.add('Algorithm Analysis')
-      allSkills.add('Complexity Theory')
-    }
-  })
+  const averageCreditsPerSemester =
+    totalCredits / semesters.filter((s) => s.courses.length > 0).length || 0;
+  const remainingCredits = DEGREE_REQUIREMENTS.totalCredits - totalCredits;
+  const semestersRemaining = Math.ceil(
+    remainingCredits / Math.max(averageCreditsPerSemester, 15)
+  );
 
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">Degree Progress</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">
+          Degree Progress
+        </h1>
         <p className="text-gray-600">Track your journey to graduation</p>
       </div>
 
-      {/* AI Assistant */}
-      <div className="mb-8 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200 shadow-lg">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-          </div>
-          <div>
-            <h3 className="text-xl font-bold text-gray-900">AI Study Advisor</h3>
-            <p className="text-sm text-gray-600">
-              Your personal advisor for academic planning and course recommendations
-            </p>
-          </div>
-        </div>
-        <PromptBox />
-      </div>
-
       {/* Progress Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Overall Progress */}
         <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-6 border-2 border-red-200">
           <div className="w-32 h-32 mx-auto mb-4">
@@ -238,132 +81,404 @@ export default function Progress() {
               value={overallProgress}
               text={`${overallProgress}%`}
               styles={buildStyles({
-                textColor: '#CC0000',
-                pathColor: '#CC0000',
-                trailColor: '#FEE2E2'
+                textColor: "#CC0000",
+                pathColor: "#CC0000",
+                trailColor: "#FEE2E2",
               })}
             />
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900">{totalCredits} / {DEGREE_REQUIREMENTS.totalCredits}</div>
+            <div className="text-2xl font-bold text-gray-900">
+              {totalCredits} / {DEGREE_REQUIREMENTS.totalCredits}
+            </div>
             <div className="text-sm text-gray-600">Total Credits</div>
+          </div>
+        </div>
+
+        {/* Hub Requirements Progress */}
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200">
+          <div className="w-32 h-32 mx-auto mb-4">
+            <CircularProgressbar
+              value={hubProgress}
+              text={`${hubProgress}%`}
+              styles={buildStyles({
+                textColor: "#2563EB",
+                pathColor: "#2563EB",
+                trailColor: "#DBEAFE",
+              })}
+            />
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-gray-900">
+              {totalHubUnits} / {DEGREE_REQUIREMENTS.hubCredits}
+            </div>
+            <div className="text-sm text-gray-600">BU Hub Units</div>
           </div>
         </div>
 
         {/* Courses Completed */}
         <div className="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-md">
-          <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full">
-            <BookOpen className="text-blue-600" size={32} />
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-gray-900">{uniqueCourses}</div>
-            <div className="text-sm text-gray-600">Courses Planned</div>
-          </div>
-        </div>
-
-        {/* Skills Acquired */}
-        <div className="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-md">
           <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-purple-100 rounded-full">
-            <Award className="text-purple-600" size={32} />
-          </div>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-gray-900">{allSkills.size}</div>
-            <div className="text-sm text-gray-600">Skills Acquired</div>
-          </div>
-        </div>
-
-        {/* Estimated Graduation */}
-        <div className="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-md">
-          <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full">
-            <TrendingUp className="text-green-600" size={32} />
+            <BookOpen className="text-purple-600" size={32} />
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-gray-900">
-              {remainingCredits > 0 ? semestersRemaining : 0}
+              {uniqueCourses}
             </div>
-            <div className="text-sm text-gray-600">
-              {remainingCredits > 0 ? 'Semesters Left' : 'Complete!'}
-            </div>
+            <div className="text-sm text-gray-600">Courses Planned</div>
           </div>
         </div>
       </div>
 
       {/* Detailed Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        {/* Requirements Progress */}
+      <div className="space-y-6 mb-8">
+        {/* HUB Areas Detailed Table */}
         <div className="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-md">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Degree Requirements</h3>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium text-gray-700">CS Core Courses</span>
-                <span className="text-sm font-bold text-gray-900">{totalCredits} / {DEGREE_REQUIREMENTS.csCoreCredits}</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div 
-                  className="bg-red-600 h-3 rounded-full transition-all duration-500"
-                  style={{ width: `${csProgress}%` }}
-                />
+          <h3 className="text-xl font-bold text-gray-900 mb-4">
+            BU Hub Requirements
+          </h3>
+          <div className="space-y-3">
+            <div className="mb-4 pb-3 border-b border-gray-200">
+              <div className="text-sm text-gray-600">
+                <span className="font-bold text-blue-600">{totalHubUnits}</span>{" "}
+                of {DEGREE_REQUIREMENTS.hubCredits} hub units satisfied
               </div>
             </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium text-gray-700">BU Hub</span>
-                <span className="text-sm font-bold text-gray-900">0 / {DEGREE_REQUIREMENTS.hubCredits}</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div className="bg-blue-600 h-3 rounded-full" style={{ width: '0%' }} />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium text-gray-700">Electives</span>
-                <span className="text-sm font-bold text-gray-900">0 / {DEGREE_REQUIREMENTS.electiveCredits}</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div className="bg-green-600 h-3 rounded-full" style={{ width: '0%' }} />
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Skills Breakdown */}
-        <div className="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-md">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">Skills Acquired</h3>
-          {allSkills.size > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {Array.from(allSkills).map(skill => (
-                <span
-                  key={skill}
-                  className="px-3 py-1.5 bg-purple-100 text-purple-800 rounded-lg text-sm font-medium"
+            {/* Table Header */}
+            <div className="grid grid-cols-12 gap-2 pb-2 border-b border-gray-300 font-semibold text-sm text-gray-700">
+              <div className="col-span-1 text-center">✓</div>
+              <div className="col-span-7">Hub Requirement</div>
+              <div className="col-span-4 text-center">Status</div>
+            </div>
+
+            {/* Philosophical, Aesthetic and Historical Capacities */}
+            <div className="mt-4 mb-2 text-xs font-bold text-gray-500 uppercase">
+              Philosophical, Aesthetic and Historical Capacities
+            </div>
+            {[
+              "Philosophical Inquiry and Life's Meanings",
+              "Aesthetic Exploration",
+              "Historical Consciousness",
+            ].map((hubArea) => {
+              const isSatisfied = hubAreasSatisfied.has(hubArea);
+              return (
+                <div
+                  key={hubArea}
+                  className={`grid grid-cols-12 gap-2 py-3 border-b border-gray-100 items-center ${
+                    isSatisfied ? "bg-green-50" : "bg-gray-50"
+                  } rounded px-2`}
                 >
-                  {skill}
-                </span>
-              ))}
+                  <div className="col-span-1 flex justify-center">
+                    {isSatisfied ? (
+                      <CheckCircle className="text-green-600" size={20} />
+                    ) : (
+                      <div className="w-5 h-5 border-2 border-gray-300 rounded-full" />
+                    )}
+                  </div>
+                  <div className="col-span-7">
+                    <span
+                      className={`text-sm ${
+                        isSatisfied
+                          ? "font-medium text-gray-900"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      {hubArea}
+                    </span>
+                  </div>
+                  <div className="col-span-4 text-center">
+                    <span
+                      className={`text-sm font-bold ${
+                        isSatisfied ? "text-green-700" : "text-gray-400"
+                      }`}
+                    >
+                      {isSatisfied ? "Fulfilled" : "Unfulfilled"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Scientific and Social Inquiry */}
+            <div className="mt-4 mb-2 text-xs font-bold text-gray-500 uppercase">
+              Scientific and Social Inquiry
             </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <Award size={48} className="mx-auto mb-3 opacity-50" />
-              <p>Add courses to your plan to see skills you'll acquire!</p>
+            {[
+              "Scientific Inquiry I",
+              "Scientific Inquiry II",
+              "Social Inquiry I",
+              "Social Inquiry II",
+            ].map((hubArea) => {
+              const isSatisfied = hubAreasSatisfied.has(hubArea);
+              const note =
+                hubArea === "Scientific Inquiry II"
+                  ? " (OR Social Inquiry II)"
+                  : "";
+              return (
+                <div
+                  key={hubArea}
+                  className={`grid grid-cols-12 gap-2 py-3 border-b border-gray-100 items-center ${
+                    isSatisfied ? "bg-green-50" : "bg-gray-50"
+                  } rounded px-2`}
+                >
+                  <div className="col-span-1 flex justify-center">
+                    {isSatisfied ? (
+                      <CheckCircle className="text-green-600" size={20} />
+                    ) : (
+                      <div className="w-5 h-5 border-2 border-gray-300 rounded-full" />
+                    )}
+                  </div>
+                  <div className="col-span-7">
+                    <span
+                      className={`text-sm ${
+                        isSatisfied
+                          ? "font-medium text-gray-900"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      {hubArea}
+                      {note}
+                    </span>
+                  </div>
+                  <div className="col-span-4 text-center">
+                    <span
+                      className={`text-sm font-bold ${
+                        isSatisfied ? "text-green-700" : "text-gray-400"
+                      }`}
+                    >
+                      {isSatisfied ? "Fulfilled" : "Unfulfilled"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Quantitative Reasoning */}
+            <div className="mt-4 mb-2 text-xs font-bold text-gray-500 uppercase">
+              Quantitative Reasoning
             </div>
-          )}
+            {["Quantitative Reasoning I", "Quantitative Reasoning II"].map(
+              (hubArea) => {
+                const isSatisfied = hubAreasSatisfied.has(hubArea);
+                return (
+                  <div
+                    key={hubArea}
+                    className={`grid grid-cols-12 gap-2 py-3 border-b border-gray-100 items-center ${
+                      isSatisfied ? "bg-green-50" : "bg-gray-50"
+                    } rounded px-2`}
+                  >
+                    <div className="col-span-1 flex justify-center">
+                      {isSatisfied ? (
+                        <CheckCircle className="text-green-600" size={20} />
+                      ) : (
+                        <div className="w-5 h-5 border-2 border-gray-300 rounded-full" />
+                      )}
+                    </div>
+                    <div className="col-span-7">
+                      <span
+                        className={`text-sm ${
+                          isSatisfied
+                            ? "font-medium text-gray-900"
+                            : "text-gray-600"
+                        }`}
+                      >
+                        {hubArea}
+                      </span>
+                    </div>
+                    <div className="col-span-4 text-center">
+                      <span
+                        className={`text-sm font-bold ${
+                          isSatisfied ? "text-green-700" : "text-gray-400"
+                        }`}
+                      >
+                        {isSatisfied ? "Fulfilled" : "Unfulfilled"}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+            )}
+
+            {/* Diversity, Civic Engagement, and Global Citizenship */}
+            <div className="mt-4 mb-2 text-xs font-bold text-gray-500 uppercase">
+              Diversity, Civic Engagement, and Global Citizenship
+            </div>
+            {[
+              "The Individual in Community",
+              "Global Citizenship and Intercultural Literacy",
+              "Ethical Reasoning",
+            ].map((hubArea) => {
+              const isSatisfied = hubAreasSatisfied.has(hubArea);
+              const note =
+                hubArea === "Global Citizenship and Intercultural Literacy"
+                  ? " (2 required)"
+                  : "";
+              return (
+                <div
+                  key={hubArea}
+                  className={`grid grid-cols-12 gap-2 py-3 border-b border-gray-100 items-center ${
+                    isSatisfied ? "bg-green-50" : "bg-gray-50"
+                  } rounded px-2`}
+                >
+                  <div className="col-span-1 flex justify-center">
+                    {isSatisfied ? (
+                      <CheckCircle className="text-green-600" size={20} />
+                    ) : (
+                      <div className="w-5 h-5 border-2 border-gray-300 rounded-full" />
+                    )}
+                  </div>
+                  <div className="col-span-7">
+                    <span
+                      className={`text-sm ${
+                        isSatisfied
+                          ? "font-medium text-gray-900"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      {hubArea}
+                      {note}
+                    </span>
+                  </div>
+                  <div className="col-span-4 text-center">
+                    <span
+                      className={`text-sm font-bold ${
+                        isSatisfied ? "text-green-700" : "text-gray-400"
+                      }`}
+                    >
+                      {isSatisfied ? "Fulfilled" : "Unfulfilled"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Communication */}
+            <div className="mt-4 mb-2 text-xs font-bold text-gray-500 uppercase">
+              Communication
+            </div>
+            {[
+              "First-Year Writing Seminar",
+              "Writing, Research, and Inquiry",
+              "Writing-Intensive Course",
+              "Oral and/or Signed Communication",
+              "Digital/Multimedia Expression",
+            ].map((hubArea) => {
+              const isSatisfied = hubAreasSatisfied.has(hubArea);
+              const note =
+                hubArea === "Writing-Intensive Course" ? " (2 required)" : "";
+              return (
+                <div
+                  key={hubArea}
+                  className={`grid grid-cols-12 gap-2 py-3 border-b border-gray-100 items-center ${
+                    isSatisfied ? "bg-green-50" : "bg-gray-50"
+                  } rounded px-2`}
+                >
+                  <div className="col-span-1 flex justify-center">
+                    {isSatisfied ? (
+                      <CheckCircle className="text-green-600" size={20} />
+                    ) : (
+                      <div className="w-5 h-5 border-2 border-gray-300 rounded-full" />
+                    )}
+                  </div>
+                  <div className="col-span-7">
+                    <span
+                      className={`text-sm ${
+                        isSatisfied
+                          ? "font-medium text-gray-900"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      {hubArea}
+                      {note}
+                    </span>
+                  </div>
+                  <div className="col-span-4 text-center">
+                    <span
+                      className={`text-sm font-bold ${
+                        isSatisfied ? "text-green-700" : "text-gray-400"
+                      }`}
+                    >
+                      {isSatisfied ? "Fulfilled" : "Unfulfilled"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Intellectual Toolkit */}
+            <div className="mt-4 mb-2 text-xs font-bold text-gray-500 uppercase">
+              Intellectual Toolkit
+            </div>
+            {[
+              "Critical Thinking",
+              "Research and Information Literacy",
+              "Teamwork/Collaboration",
+              "Creativity/Innovation",
+            ].map((hubArea) => {
+              const isSatisfied = hubAreasSatisfied.has(hubArea);
+              return (
+                <div
+                  key={hubArea}
+                  className={`grid grid-cols-12 gap-2 py-3 border-b border-gray-100 items-center ${
+                    isSatisfied ? "bg-green-50" : "bg-gray-50"
+                  } rounded px-2`}
+                >
+                  <div className="col-span-1 flex justify-center">
+                    {isSatisfied ? (
+                      <CheckCircle className="text-green-600" size={20} />
+                    ) : (
+                      <div className="w-5 h-5 border-2 border-gray-300 rounded-full" />
+                    )}
+                  </div>
+                  <div className="col-span-7">
+                    <span
+                      className={`text-sm ${
+                        isSatisfied
+                          ? "font-medium text-gray-900"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      {hubArea} (2 required)
+                    </span>
+                  </div>
+                  <div className="col-span-4 text-center">
+                    <span
+                      className={`text-sm font-bold ${
+                        isSatisfied ? "text-green-700" : "text-gray-400"
+                      }`}
+                    >
+                      {isSatisfied ? "Fulfilled" : "Unfulfilled"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* Semester by Semester */}
       <div className="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-md">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">Semester Timeline</h3>
+        <h3 className="text-xl font-bold text-gray-900 mb-4">
+          Semester Timeline
+        </h3>
         <div className="space-y-4">
           {semesters.map((semester, index) => {
-            const semesterCredits = semester.courses.reduce((sum, c) => sum + c.credits, 0)
-            
+            const semesterCredits = semester.courses.reduce(
+              (sum, c) => sum + c.credits,
+              0
+            );
+
             return (
               <div key={semester.id} className="flex items-center gap-4">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                  semester.courses.length > 0 
-                    ? 'bg-green-100 text-green-600' 
-                    : 'bg-gray-100 text-gray-400'
-                }`}>
+                <div
+                  className={`flex items-center justify-center w-10 h-10 rounded-full ${
+                    semester.courses.length > 0
+                      ? "bg-green-100 text-green-600"
+                      : "bg-gray-100 text-gray-400"
+                  }`}
+                >
                   {semester.courses.length > 0 ? (
                     <CheckCircle size={20} />
                   ) : (
@@ -373,14 +488,13 @@ export default function Progress() {
                 <div className="flex-1">
                   <div className="font-bold text-gray-900">{semester.name}</div>
                   <div className="text-sm text-gray-600">
-                    {semester.courses.length === 0 
-                      ? 'No courses planned' 
-                      : `${semester.courses.length} courses • ${semesterCredits} credits`
-                    }
+                    {semester.courses.length === 0
+                      ? "No courses planned"
+                      : `${semester.courses.length} courses • ${semesterCredits} credits`}
                   </div>
                 </div>
               </div>
-            )
+            );
           })}
         </div>
       </div>
@@ -389,23 +503,35 @@ export default function Progress() {
       {overallProgress > 0 && (
         <div className="mt-8 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border-2 border-green-200 text-center">
           <div className="text-3xl mb-2">
-            {overallProgress < 25 ? '🌱' : overallProgress < 50 ? '🌿' : overallProgress < 75 ? '🌳' : '🎓'}
+            {overallProgress < 25
+              ? "🌱"
+              : overallProgress < 50
+              ? "🌿"
+              : overallProgress < 75
+              ? "🌳"
+              : "🎓"}
           </div>
           <div className="text-xl font-bold text-gray-900 mb-2">
             {overallProgress < 25 && "You're just getting started! Keep going!"}
-            {overallProgress >= 25 && overallProgress < 50 && "Great progress! You're building momentum!"}
-            {overallProgress >= 50 && overallProgress < 75 && "Halfway there! Stay focused!"}
-            {overallProgress >= 75 && overallProgress < 100 && "Almost done! The finish line is in sight!"}
-            {overallProgress >= 100 && "Congratulations! You're ready to graduate! 🎉"}
+            {overallProgress >= 25 &&
+              overallProgress < 50 &&
+              "Great progress! You're building momentum!"}
+            {overallProgress >= 50 &&
+              overallProgress < 75 &&
+              "Halfway there! Stay focused!"}
+            {overallProgress >= 75 &&
+              overallProgress < 100 &&
+              "Almost done! The finish line is in sight!"}
+            {overallProgress >= 100 &&
+              "Congratulations! You're ready to graduate! 🎉"}
           </div>
           <div className="text-gray-700">
-            {remainingCredits > 0 
+            {remainingCredits > 0
               ? `${remainingCredits} credits remaining to complete your degree`
-              : 'You have enough credits to graduate!'
-            }
+              : "You have enough credits to graduate!"}
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }

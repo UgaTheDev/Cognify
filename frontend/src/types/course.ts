@@ -7,12 +7,15 @@ export interface Course {
   shortTitle: string;
   description: string;
   credits: number;
-  component: 'LEC' | 'LAB' | 'SEM' | 'IND' | 'DRS';
+  component: "LEC" | "LAB" | "SEM" | "IND" | "DRS";
   repeatable: boolean;
   consentRequired: boolean;
   prerequisites: Prerequisites;
   hubRequirements: string[];
-  level: 'Introductory' | 'Intermediate' | 'Advanced' | 'Graduate';
+  level: "Introductory" | "Intermediate" | "Advanced" | "Graduate";
+  // Hub-related properties from backend
+  hub_areas?: Record<string, boolean>; // Object with hub area names as keys
+  hub_requirements?: string[]; // Array of hub area names (alternative format)
 }
 
 export interface Prerequisites {
@@ -24,7 +27,7 @@ export interface Semester {
   id: string;
   name: string;
   year: number;
-  term: 'Fall' | 'Spring' | 'Summer';
+  term: "Fall" | "Spring" | "Summer";
   courses: string[];
   totalCredits: number;
 }
