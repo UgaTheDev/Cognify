@@ -40,7 +40,7 @@ export default function Home() {
             Course Explorer
           </h3>
           <p className="text-gray-600 mb-4">
-            Browse through 31+ CS courses with detailed descriptions,
+            Browse through 6000+ CS courses with detailed descriptions,
             prerequisites, and requirements
           </p>
           <span className="text-red-600 font-medium group-hover:underline">
@@ -152,11 +152,11 @@ export default function Home() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="text-center">
-            <div className="text-4xl font-bold text-red-600 mb-2">31+</div>
-            <div className="text-gray-600">CS Courses</div>
+            <div className="text-4xl font-bold text-red-600 mb-2">6000+</div>
+            <div className="text-gray-600">Courses</div>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-bold text-red-600 mb-2">4,057</div>
+            <div className="text-4xl font-bold text-red-600 mb-2">4000+</div>
             <div className="text-gray-600">Faculty Members</div>
           </div>
           <div className="text-center">
