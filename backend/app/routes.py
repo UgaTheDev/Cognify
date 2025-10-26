@@ -453,7 +453,6 @@ KEY FEATURES & HOW TO USE THEM:
 
 📅 SEMESTER PLANNING (Planner page):
 - Click "Add Semester" button to create a new semester
-- Drag courses from the left sidebar into semester boards
 - Prerequisites are validated automatically
 - Export your plan to PDF with the "Export to PDF" button
 - Visual prerequisite flow shows course dependencies

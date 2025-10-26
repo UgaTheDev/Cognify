@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { CAREER_PATHS, COURSE_SKILLS } from "../data/careerPaths";
 import {
   Briefcase,
-  Target,
   Award,
   Sparkles,
   Loader,
@@ -62,9 +60,7 @@ export default function UniversalCareerRecommender({
   allCourses,
   onAddCourse,
 }: CareerRecommenderProps) {
-  const [selectedCareer, setSelectedCareer] = useState<string | null>(null);
   const [customCareer, setCustomCareer] = useState("");
-  const [showCustom, setShowCustom] = useState(false);
   const [aiRecommendations, setAiRecommendations] = useState<AIResponse | null>(
     null
   );
@@ -74,9 +70,7 @@ export default function UniversalCareerRecommender({
   const [chatLoading, setChatLoading] = useState(false);
   const [error, setError] = useState<string>("");
 
-  const selectedPath = CAREER_PATHS.find((p) => p.id === selectedCareer);
-
-  // Get recommended courses based on AI or preset - FIXED TYPE ISSUE
+  // Get recommended courses based on AI
   const getRecommendedCourses = (): RecommendedCourse[] => {
     if (aiRecommendations?.recommended_courses) {
       return aiRecommendations.recommended_courses
@@ -100,45 +94,14 @@ export default function UniversalCareerRecommender({
         .filter((course): course is RecommendedCourse => course !== null);
     }
 
-    if (!selectedPath) return [];
-
-    return selectedPath.recommendedCourses
-      .map((code) => allCourses.find((c) => c.code === code))
-      .filter((course): course is Course => course !== null)
-      .map((course) => ({ ...course }));
-  };
-
-  const getCourseSkills = (courseCode: string) => {
-    return COURSE_SKILLS[courseCode] || [];
+    return [];
   };
 
   const getSkillCoverage = () => {
     if (aiRecommendations?.skill_coverage_percentage) {
       return aiRecommendations.skill_coverage_percentage;
     }
-
-    if (!selectedPath) return 0;
-
-    const recommendedCourses = getRecommendedCourses();
-    const allSkillsFromCourses = new Set<string>();
-
-    recommendedCourses.forEach((course) => {
-      getCourseSkills(course.code).forEach((skill) =>
-        allSkillsFromCourses.add(skill)
-      );
-    });
-
-    const coveredRequiredSkills = selectedPath.requiredSkills.filter((skill) =>
-      Array.from(allSkillsFromCourses).some(
-        (courseSkill) =>
-          courseSkill.toLowerCase().includes(skill.toLowerCase()) ||
-          skill.toLowerCase().includes(courseSkill.toLowerCase())
-      )
-    );
-
-    return Math.round(
-      (coveredRequiredSkills.length / selectedPath.requiredSkills.length) * 100
-    );
+    return 0;
   };
 
   // Handle custom career submission - uses your existing ai_advisor.py endpoint
@@ -177,7 +140,6 @@ export default function UniversalCareerRecommender({
       }
 
       setAiRecommendations(response.data);
-      setSelectedCareer(null);
     } catch (error: any) {
       console.error("Error getting AI recommendations:", error);
       const errorMessage =
@@ -192,19 +154,19 @@ export default function UniversalCareerRecommender({
         const fallbackCourses = allCourses
           .filter(
             (course) =>
-              course.title.toLowerCase().includes("environment") ||
-              course.title.toLowerCase().includes("sustainability") ||
-              course.title.toLowerCase().includes("climate") ||
-              course.title.toLowerCase().includes("policy")
+              course.title.toLowerCase().includes(customCareer.toLowerCase()) ||
+              course.description
+                ?.toLowerCase()
+                .includes(customCareer.toLowerCase())
           )
           .slice(0, 6)
           .map((course) => ({
             code: course.code,
-            relevance: `Relevant to ${customCareer} based on course title`,
+            relevance: `Relevant to ${customCareer} based on course content`,
             skills_taught: [
-              "Environmental Awareness",
-              "Policy Analysis",
-              "Sustainability",
+              "Problem Solving",
+              "Critical Thinking",
+              "Technical Skills",
             ],
           }));
 
@@ -212,15 +174,15 @@ export default function UniversalCareerRecommender({
           setAiRecommendations({
             career_analysis: `Based on your interest in ${customCareer}, here are some relevant courses from our catalog.`,
             required_skills: [
-              "Environmental Science",
-              "Policy Analysis",
-              "Sustainability",
+              "Technical Skills",
+              "Problem Solving",
               "Communication",
+              "Collaboration",
             ],
             recommended_courses: fallbackCourses,
             skill_coverage_percentage: 60,
             additional_advice:
-              "These courses were selected based on title relevance. For more specific recommendations, ensure the AI service is running.",
+              "These courses were selected based on relevance. For more specific recommendations, ensure the AI service is running.",
           });
         }
       }
@@ -271,17 +233,9 @@ Provide specific, actionable advice.`,
     }
   };
 
-  const requiredSkills = aiRecommendations
-    ? aiRecommendations.required_skills || []
-    : selectedPath?.requiredSkills || [];
-
-  const careerName = aiRecommendations
-    ? customCareer
-    : selectedPath?.name || "";
-
-  const careerDescription = aiRecommendations
-    ? aiRecommendations.career_analysis || ""
-    : selectedPath?.description || "";
+  const requiredSkills = aiRecommendations?.required_skills || [];
+  const careerName = customCareer;
+  const careerDescription = aiRecommendations?.career_analysis || "";
 
   // Handle adding individual course to plan
   const handleAddCourse = (course: RecommendedCourse) => {
@@ -333,40 +287,7 @@ Provide specific, actionable advice.`,
         </div>
       )}
 
-      {/* Mode Toggle */}
-      <div className="flex gap-3">
-        <button
-          onClick={() => {
-            setShowCustom(false);
-            setAiRecommendations(null);
-            setError("");
-          }}
-          className={`flex-1 py-3 rounded-xl font-bold transition-all ${
-            !showCustom
-              ? "bg-red-600 text-white shadow-lg"
-              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-          }`}
-        >
-          📚 Browse Career Paths
-        </button>
-        <button
-          onClick={() => {
-            setShowCustom(true);
-            setSelectedCareer(null);
-            setError("");
-          }}
-          className={`flex-1 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
-            showCustom
-              ? "bg-purple-600 text-white shadow-lg"
-              : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-          }`}
-        >
-          <Sparkles size={20} />
-          AI Custom Advisor
-        </button>
-      </div>
-
-      {/* AI Chat Advisor - Now in Semester Planner */}
+      {/* AI Chat Advisor */}
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200">
         <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
           <MessageCircle className="text-blue-600" />
@@ -417,123 +338,68 @@ Provide specific, actionable advice.`,
       </div>
 
       {/* Custom AI Career Input */}
-      {showCustom && (
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border-2 border-purple-200">
-          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Sparkles className="text-purple-600" />
-            Tell us your career goal
-          </h3>
-          <p className="text-gray-700 mb-4">
-            Enter any career path - our AI will search through all courses and
-            recommend the most relevant ones!
-          </p>
-          <div className="flex gap-3">
-            <input
-              type="text"
-              value={customCareer}
-              onChange={(e) => setCustomCareer(e.target.value)}
-              placeholder="e.g., Environmental Policy Analyst, Marketing Manager, Medical Researcher..."
-              className="flex-1 px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              onKeyPress={(e) =>
-                e.key === "Enter" && handleCustomCareerSubmit()
-              }
-            />
-            <button
-              onClick={handleCustomCareerSubmit}
-              disabled={loading || !customCareer.trim()}
-              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg font-bold transition-all flex items-center gap-2 min-w-40"
-            >
-              {loading ? (
-                <>
-                  <Loader className="animate-spin" size={20} />
-                  Searching...
-                </>
-              ) : (
-                <>
-                  <Sparkles size={20} />
-                  Get Recommendations
-                </>
-              )}
-            </button>
-          </div>
-          {customCareer && !loading && (
-            <div className="mt-3 text-sm text-gray-600">
-              Ready to search for courses related to:{" "}
-              <strong>"{customCareer}"</strong>
-            </div>
-          )}
+      <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border-2 border-purple-200">
+        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <Sparkles className="text-purple-600" />
+          AI Custom Advisor
+        </h3>
+        <p className="text-gray-700 mb-4">
+          Enter any career path - our AI will search through all courses and
+          recommend the most relevant ones!
+        </p>
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={customCareer}
+            onChange={(e) => setCustomCareer(e.target.value)}
+            placeholder="e.g., Machine Learning Engineer, Data Scientist, Software Developer..."
+            className="flex-1 px-4 py-3 border-2 border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            onKeyPress={(e) => e.key === "Enter" && handleCustomCareerSubmit()}
+          />
+          <button
+            onClick={handleCustomCareerSubmit}
+            disabled={loading || !customCareer.trim()}
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg font-bold transition-all flex items-center gap-2 min-w-40"
+          >
+            {loading ? (
+              <>
+                <Loader className="animate-spin" size={20} />
+                Searching...
+              </>
+            ) : (
+              <>
+                <Sparkles size={20} />
+                Get Recommendations
+              </>
+            )}
+          </button>
         </div>
-      )}
-
-      {/* Preset Career Paths */}
-      {!showCustom && (
-        <div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Target className="text-red-600" />
-            Choose a Career Path
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {CAREER_PATHS.map((career) => (
-              <button
-                key={career.id}
-                onClick={() => {
-                  setSelectedCareer(career.id);
-                  setAiRecommendations(null);
-                }}
-                className={`p-4 rounded-xl border-2 transition-all text-left ${
-                  selectedCareer === career.id
-                    ? "border-red-600 bg-red-50 shadow-lg scale-105"
-                    : "border-gray-200 bg-white hover:border-red-300 hover:shadow-md"
-                }`}
-              >
-                <div className="text-4xl mb-2">{career.icon}</div>
-                <div className="font-bold text-gray-900 mb-1">
-                  {career.name}
-                </div>
-                <div className="text-xs text-gray-600">
-                  {career.description}
-                </div>
-              </button>
-            ))}
+        {customCareer && !loading && (
+          <div className="mt-3 text-sm text-gray-600">
+            Ready to search for courses related to:{" "}
+            <strong>"{customCareer}"</strong>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Recommendations Display */}
-      {(selectedPath || aiRecommendations) && (
+      {aiRecommendations && (
         <div className="space-y-6 animate-in fade-in duration-500">
           {/* Career Info */}
           <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl p-6 border-2 border-red-200">
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <h4 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-                  {selectedPath?.icon || "🎯"} {careerName}
+                  🎯 {careerName}
                 </h4>
                 <p className="text-gray-700 mb-4">{careerDescription}</p>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {selectedPath?.salaryRange && (
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="text-green-600" size={20} />
-                      <div>
-                        <div className="text-xs text-gray-600">
-                          Salary Range
-                        </div>
-                        <div className="font-bold text-gray-900">
-                          {selectedPath.salaryRange}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <Award className="text-purple-600" size={20} />
-                    <div>
-                      <div className="text-xs text-gray-600">
-                        Skill Coverage
-                      </div>
-                      <div className="font-bold text-gray-900">
-                        {getSkillCoverage()}%
-                      </div>
+                <div className="flex items-center gap-2">
+                  <Award className="text-purple-600" size={20} />
+                  <div>
+                    <div className="text-xs text-gray-600">Skill Coverage</div>
+                    <div className="font-bold text-gray-900">
+                      {getSkillCoverage()}%
                     </div>
                   </div>
                 </div>
@@ -618,24 +484,23 @@ Provide specific, actionable advice.`,
                     )}
 
                     {/* Skills */}
-                    <div className="mt-3">
-                      <div className="text-xs font-medium text-gray-600 mb-1">
-                        Skills you'll learn:
+                    {course.skillsTaught && course.skillsTaught.length > 0 && (
+                      <div className="mt-3">
+                        <div className="text-xs font-medium text-gray-600 mb-1">
+                          Skills you'll learn:
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {course.skillsTaught.map((skill: string) => (
+                            <span
+                              key={skill}
+                              className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-1">
-                        {(
-                          course.skillsTaught ||
-                          getCourseSkills(course.code).slice(0, 3)
-                        ).map((skill: string) => (
-                          <span
-                            key={skill}
-                            className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                    )}
 
                     <div className="flex justify-between items-center mt-3">
                       <div className="text-xs text-gray-500">
