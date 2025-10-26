@@ -150,6 +150,7 @@ Before you begin, ensure you have the following installed:
    ```bash
    cd frontend
    npm install
+   npm run dev
    ```
 
 3. **Set up the Backend**
@@ -158,6 +159,7 @@ Before you begin, ensure you have the following installed:
    python -m venv venv
    source venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install -r requirements.txt
+   python3 -m uvicorn app.main:app --reload
    ```
 
 4. **Configure Environment Variables**
