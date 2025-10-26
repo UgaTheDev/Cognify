@@ -40,7 +40,7 @@ export default function Home() {
             Course Explorer
           </h3>
           <p className="text-gray-600 mb-4">
-            Browse through 6000+ CS courses with detailed descriptions,
+            Browse through 6000+ courses with detailed descriptions,
             prerequisites, and requirements
           </p>
           <span className="text-red-600 font-medium group-hover:underline">
