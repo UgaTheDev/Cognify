@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Body
-from typing import List, Dict
+from typing import List, Dict, Optional
 import json
 import re
 import os
@@ -8,25 +8,36 @@ from app.ai_advisor import generate_ai_response
 
 router = APIRouter()
 
-# Load courses from JSON file instead of hardcoding
+# Load courses from the new multi-school JSON file
 def load_courses_from_json():
-    """Load courses from the processed JSON file"""
+    """Load courses from the processed multi-school JSON file"""
     try:
-        # Path to the processed courses JSON file
-        json_path = Path(__file__).parent.parent / "processing_csv" / "processed_courses_2022_onwards.json"
+        # Path to the new multi-school JSON file
+        json_path = Path(__file__).parent.parent / "processing_csv" / "output" / "all_courses_data.json"
         
         if not json_path.exists():
-            # Fallback to sample file if main file doesn't exist
-            json_path = Path(__file__).parent.parent / "processing_csv" / "processed_courses_sample.json"
+            # Fallback path
+            json_path = Path(__file__).parent.parent / "processing_csv" / "all_courses_data.json"
             if not json_path.exists():
-                print("❌ No course data files found. Run the CSV processor first.")
+                print("❌ No multi-school course data found. Run the CSV processor first.")
                 return []
         
         with open(json_path, 'r', encoding='utf-8') as f:
-            courses_data = json.load(f)
+            data = json.load(f)
         
-        print(f"✅ Loaded {len(courses_data)} courses from {json_path.name}")
-        return courses_data
+        # Extract all courses from all schools and flatten them
+        all_courses = []
+        if 'schools' in data:
+            for school_name, school_data in data['schools'].items():
+                for course in school_data.get('courses', []):
+                    # Add school information to each course
+                    course_with_school = course.copy()
+                    course_with_school['school'] = school_name
+                    course_with_school['id'] = f"{school_name}_{course['code'].replace(' ', '_').replace('|', '_')}"
+                    all_courses.append(course_with_school)
+        
+        print(f"✅ Loaded {len(all_courses)} courses from {len(data.get('schools', {}))} schools")
+        return all_courses
         
     except Exception as e:
         print(f"❌ Error loading courses from JSON: {e}")
@@ -37,18 +48,39 @@ def get_all_courses():
     return load_courses_from_json()
 
 def enhance_course_data(course):
-    """Add missing fields that were in the hardcoded data but not in processed data"""
+    """Add missing fields for API compatibility"""
     enhanced = course.copy()
     
-    # Add fields that were in hardcoded data but might be missing in processed data
-    enhanced.setdefault('short_title', course.get('title', ''))
-    # Remove description since it's not available
-    enhanced.setdefault('credits', 4.0)  # Assume 4 credits for every course
-    enhanced.setdefault('component', 'LEC')  # Default to Lecture
+    # Map fields to expected API structure
+    enhanced.setdefault('id', course.get('id', ''))
+    enhanced.setdefault('code', course.get('code', ''))
+    enhanced.setdefault('title', course.get('name', ''))
+    enhanced.setdefault('short_title', course.get('name', ''))
+    enhanced.setdefault('description', '')  # Not available in new format
+    enhanced.setdefault('credits', 4.0)  # Assume 4 credits
+    enhanced.setdefault('component', 'LEC')
     enhanced.setdefault('repeatable', False)
     enhanced.setdefault('consent_required', False)
     enhanced.setdefault('prerequisites', {"required": [], "recommended": []})
-    enhanced.setdefault('hub_requirements', [])
+    
+    # Extract HUB requirements from hub_areas
+    hub_requirements = list(course.get('hub_areas', {}).keys())
+    enhanced['hub_requirements'] = hub_requirements
+    
+    # Extract department/subject from course code
+    code_parts = course.get('code', '').split()
+    if len(code_parts) >= 2:
+        enhanced['department'] = code_parts[0] if len(code_parts) > 0 else ''
+        enhanced['subject'] = code_parts[1] if len(code_parts) > 1 else ''
+        enhanced['catalog_number'] = code_parts[2] if len(code_parts) > 2 else ''
+    else:
+        enhanced['department'] = course.get('school', '')
+        enhanced['subject'] = ''
+        enhanced['catalog_number'] = ''
+    
+    enhanced['academic_group'] = course.get('school', '')
+    enhanced['academic_org'] = course.get('school', '')
+    enhanced['level'] = 'Undergraduate'  # Default level
     
     return enhanced
 
@@ -69,20 +101,43 @@ async def list_ai_models():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/api/courses/")
-async def list_courses():
-    """Get all courses from JSON file"""
+async def list_courses(school: Optional[str] = None, hub_area: Optional[str] = None):
+    """Get all courses from JSON file with optional school and HUB filtering"""
     courses = get_all_courses()
-    enhanced_courses = [enhance_course_data(course) for course in courses]
-    return {"courses": enhanced_courses, "total": len(enhanced_courses)}
+    
+    # Apply filters
+    filtered_courses = courses
+    if school:
+        filtered_courses = [c for c in filtered_courses if c.get('school', '').lower() == school.lower()]
+    
+    if hub_area:
+        filtered_courses = [c for c in filtered_courses if hub_area in c.get('hub_areas', {})]
+    
+    enhanced_courses = [enhance_course_data(course) for course in filtered_courses]
+    return {
+        "courses": enhanced_courses, 
+        "total": len(enhanced_courses),
+        "filters": {
+            "school": school,
+            "hub_area": hub_area
+        }
+    }
 
 @router.get("/api/courses/{course_id}")
 async def get_course(course_id: str):
     """Get a specific course by ID"""
     courses = get_all_courses()
-    course = next((c for c in courses if c["id"] == course_id), None)
+    
+    # Try exact ID match first
+    course = next((c for c in courses if c.get("id") == course_id), None)
+    
     if not course:
-        # Also try searching by code as fallback
+        # Try code match
         course = next((c for c in courses if c.get("code") == course_id), None)
+    
+    if not course:
+        # Try partial code match
+        course = next((c for c in courses if course_id in c.get("code", "")), None)
     
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
@@ -90,13 +145,15 @@ async def get_course(course_id: str):
     return enhance_course_data(course)
 
 @router.get("/api/courses/search/")
-async def search_courses(q: str = "", department: str = None, level: str = None):
+async def search_courses(
+    q: str = "", 
+    department: str = None, 
+    level: str = None,
+    school: str = None,
+    hub_area: str = None
+):
     """Search courses by query with optional filters"""
     courses = get_all_courses()
-    
-    if not q and not department and not level:
-        enhanced_courses = [enhance_course_data(course) for course in courses]
-        return {"courses": enhanced_courses, "total": len(enhanced_courses)}
     
     query = q.lower() if q else ""
     results = []
@@ -107,50 +164,85 @@ async def search_courses(q: str = "", department: str = None, level: str = None)
         if query:
             text_match = (
                 query in course.get("code", "").lower() or
-                query in course.get("title", "").lower() or
-                query in course.get("subject", "").lower() or
-                query in course.get("catalog_number", "").lower() or
-                query in course.get("department", "").lower()
+                query in course.get("name", "").lower() or
+                query in course.get("school", "").lower()
             )
         
         # Department filter
         dept_match = True
         if department:
             dept_match = (
-                department.lower() in course.get("department", "").lower() or
-                department.lower() in course.get("academic_group", "").lower() or
-                department.lower() in course.get("academic_org", "").lower()
+                department.lower() in course.get("code", "").lower() or
+                department.lower() in course.get("school", "").lower()
             )
         
-        # Level filter
+        # Level filter (not really available, but we can infer from course code)
         level_match = True
         if level:
-            level_match = level.lower() in course.get("level", "").lower()
+            # Try to infer level from course code (e.g., 100-400 level = undergraduate)
+            code_parts = course.get("code", "").split()
+            catalog_num = code_parts[-1] if code_parts else ""
+            if level.lower() == "undergraduate" and any(catalog_num.startswith(str(x)) for x in ['1', '2', '3', '4']):
+                level_match = True
+            elif level.lower() == "graduate" and any(catalog_num.startswith(str(x)) for x in ['5', '6', '7', '8', '9']):
+                level_match = True
+            else:
+                level_match = False
         
-        if text_match and dept_match and level_match:
+        # School filter
+        school_match = True
+        if school:
+            school_match = school.lower() == course.get("school", "").lower()
+        
+        # HUB area filter
+        hub_match = True
+        if hub_area:
+            hub_match = hub_area in course.get('hub_areas', {})
+        
+        if text_match and dept_match and level_match and school_match and hub_match:
             results.append(enhance_course_data(course))
     
     return {"courses": results, "total": len(results)}
 
+@router.get("/api/schools/")
+async def list_schools():
+    """Get all unique schools"""
+    courses = get_all_courses()
+    schools = set()
+    
+    for course in courses:
+        school = course.get('school')
+        if school:
+            schools.add(school)
+    
+    return {"schools": sorted(list(schools))}
+
 @router.get("/api/departments/")
 async def list_departments():
-    """Get all unique departments"""
+    """Get all unique departments (extracted from course codes)"""
     courses = get_all_courses()
     departments = set()
     
     for course in courses:
-        dept = course.get('department')
-        if dept and dept != '':
-            departments.add(dept)
-        # Also include academic org and group as departments
-        org = course.get('academic_org')
-        if org and org != '':
-            departments.add(org)
-        group = course.get('academic_group')
-        if group and group != '':
-            departments.add(group)
+        code = course.get('code', '')
+        if ' ' in code:
+            dept = code.split()[0]
+            if dept:
+                departments.add(dept)
     
     return {"departments": sorted(list(departments))}
+
+@router.get("/api/hub-areas/")
+async def list_hub_areas():
+    """Get all unique HUB areas across all courses"""
+    courses = get_all_courses()
+    hub_areas = set()
+    
+    for course in courses:
+        for hub_area in course.get('hub_areas', {}).keys():
+            hub_areas.add(hub_area)
+    
+    return {"hub_areas": sorted(list(hub_areas))}
 
 @router.get("/api/subjects/")
 async def list_subjects():
@@ -159,9 +251,11 @@ async def list_subjects():
     subjects = set()
     
     for course in courses:
-        subject = course.get('subject')
-        if subject and subject != '':
-            subjects.add(subject)
+        code = course.get('code', '')
+        if ' ' in code:
+            parts = code.split()
+            if len(parts) >= 2:
+                subjects.add(parts[1])
     
     return {"subjects": sorted(list(subjects))}
 
@@ -173,11 +267,17 @@ async def ai_career_advisor(request: dict):
 
     career_goal = request.get("career_goal", "")
     major = request.get("major", "Computer Science")
+    school = request.get("school", "")  # Optional school filter
     
     if not career_goal:
         raise HTTPException(status_code=400, detail="Career goal is required")
     
     courses = get_all_courses()
+    
+    # Filter by school if specified
+    if school:
+        courses = [c for c in courses if c.get('school', '').lower() == school.lower()]
+    
     recommendations = get_career_recommendations(
         career_goal=career_goal,
         available_courses=courses,
@@ -186,7 +286,7 @@ async def ai_career_advisor(request: dict):
     
     return recommendations
 
-# Professor endpoints
+# Professor endpoints (unchanged)
 @router.get("/api/professors/")
 async def get_professors(department: str = None):
     """Get all professors, optionally filtered by department"""
@@ -195,7 +295,6 @@ async def get_professors(department: str = None):
     if department and department.lower() != "all":
         professors = get_professors_by_department(department)
     else:
-        # Return ALL professors from all departments
         professors = get_all_professors()
     
     return {"professors": professors, "total": len(professors)}
@@ -207,13 +306,10 @@ async def gemini_endpoint(body: dict = Body(...)):
     if not prompt:
         raise HTTPException(status_code=400, detail="Prompt is required")
     
-    model = body.get('model')  # optional
-    # Log incoming prompt for debugging (avoid logging sensitive data in production)
+    model = body.get('model')
     print(f"/api/gemini/ called; model={model}")
     result = await generate_ai_response(prompt, model)
 
-    # `generate_ai_response` returns {'result': text, ...} on success.
-    # If the text itself contains JSON (e.g., career recommendation JSON), parse and return it
     text = None
     if isinstance(result, dict):
         text = result.get('result')
@@ -221,16 +317,12 @@ async def gemini_endpoint(body: dict = Body(...)):
         text = result
 
     if text:
-        # Try to parse JSON blob from the text
         try:
             parsed = json.loads(text)
-            # If parsed is a dict and contains career recommendation keys, return it as structured JSON
             if isinstance(parsed, dict):
                 return parsed
-            # otherwise return as-is
             return {"result": parsed, "model": result.get('model') if isinstance(result, dict) else None}
         except Exception:
-            # Not a plain JSON body; try to extract JSON substring
             try:
                 m = re.search(r"\{.*\}", text, re.DOTALL)
                 if m:
@@ -319,3 +411,13 @@ async def generate_professor_email(request: dict):
         "professor": professor_name,
         "research_areas": [c.get('display_name') for c in author_data.get('x_concepts', [])[:5]]
     }
+
+@router.get("/api/ai-models/")
+async def list_ai_models():
+    """List available AI models"""
+    try:
+        from app.ai_advisor import get_available_models
+        models = get_available_models()
+        return {"models": models}
+    except Exception as e:
+        return {"error": str(e), "models": []}

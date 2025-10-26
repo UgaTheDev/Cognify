@@ -1,40 +1,46 @@
-import { Plus, Trash2, Download, Calendar, Share2 } from 'lucide-react'
-import { usePlannerStore } from '../store/plannerStore'
-import { useState } from 'react'
-import { exportToPDF, exportToCalendar, generateShareLink } from '../utils/exportPlan'
+import { Plus, Trash2, Download, Calendar, Share2 } from "lucide-react";
+import { usePlannerStore } from "../store/plannerStore";
+import { useState } from "react";
+import {
+  exportToPDF,
+  exportToCalendar,
+  generateShareLink,
+} from "../utils/exportPlan";
 
 export default function PlannerControls() {
-  const { addNewSemester, clearAllCourses, semesters } = usePlannerStore()
-  const [showAddSemester, setShowAddSemester] = useState(false)
-  const [showShareLink, setShowShareLink] = useState(false)
-  const [shareUrl, setShareUrl] = useState('')
-  const [newYear, setNewYear] = useState(2026)
-  const [newSeason, setNewSeason] = useState<'Fall' | 'Spring' | 'Summer'>('Fall')
+  const { addNewSemester, clearAllCourses, semesters } = usePlannerStore();
+  const [showAddSemester, setShowAddSemester] = useState(false);
+  const [showShareLink, setShowShareLink] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
+  const [newYear, setNewYear] = useState(2026);
+  const [newSeason, setNewSeason] = useState<"Fall" | "Spring" | "Summer">(
+    "Fall"
+  );
 
   const handleAddSemester = () => {
-    addNewSemester(newYear, newSeason)
-    setShowAddSemester(false)
-  }
+    addNewSemester(newYear, newSeason);
+    setShowAddSemester(false);
+  };
 
   const handleClearAll = () => {
-    if (confirm('Are you sure you want to clear all courses from your plan?')) {
-      clearAllCourses()
+    if (confirm("Are you sure you want to clear all courses from your plan?")) {
+      clearAllCourses();
     }
-  }
+  };
 
   const handleExportPDF = () => {
-    exportToPDF(semesters, 'BU Student')
-  }
+    exportToPDF(semesters, "BU Student");
+  };
 
   const handleExportCalendar = () => {
-    exportToCalendar(semesters)
-  }
+    exportToCalendar(semesters);
+  };
 
   const handleShare = () => {
-    const url = generateShareLink(semesters)
-    setShareUrl(url)
-    setShowShareLink(true)
-  }
+    const url = generateShareLink(semesters);
+    setShareUrl(url);
+    setShowShareLink(true);
+  };
 
   return (
     <>
@@ -58,32 +64,9 @@ export default function PlannerControls() {
 
           <div className="border-l border-gray-300 h-8 mx-2"></div>
 
-          <button
-            onClick={handleExportPDF}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
-          >
-            <Download size={18} />
-            Export PDF
-          </button>
-
-          <button
-            onClick={handleExportCalendar}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
-          >
-            <Calendar size={18} />
-            Export Calendar
-          </button>
-
-          <button
-            onClick={handleShare}
-            className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
-          >
-            <Share2 size={18} />
-            Share Plan
-          </button>
-
           <div className="ml-auto text-sm text-gray-600">
-            {semesters.length} semesters • {semesters.reduce((sum, s) => sum + s.courses.length, 0)} courses
+            {semesters.length} semesters •{" "}
+            {semesters.reduce((sum, s) => sum + s.courses.length, 0)} courses
           </div>
         </div>
       </div>
@@ -155,5 +138,5 @@ export default function PlannerControls() {
         </div>
       )}
     </>
-  )
+  );
 }
