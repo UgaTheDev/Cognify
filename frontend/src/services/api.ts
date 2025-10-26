@@ -16,3 +16,11 @@ api.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+/**
+ * Call backend proxy for Google AI Studio / Gemini
+ * Expects body: { prompt: string, model?: string }
+ */
+export async function callGemini(payload: { prompt: string; model?: string }) {
+  return api.post('/api/gemini/', payload)
+}

@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 from typing import List, Dict
+from app.ai_advisor import generate_ai_response
 
 router = APIRouter()
 
@@ -571,6 +572,17 @@ async def get_professors(department: str = None):
     
     return {"professors": professors, "total": len(professors)}
 
+@router.post("/api/gemini/")
+async def gemini_endpoint(body: dict = Body(...)):
+    """Handle requests to the Gemini AI model."""
+    prompt = body.get('prompt')
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Prompt is required")
+    
+    model = body.get('model')  # optional
+    result = await generate_ai_response(prompt, model)
+    return result
+
 @router.get("/api/professors/{professor_name}")
 async def get_professor_details(professor_name: str):
     """Get detailed professor information including OpenAlex data"""
@@ -604,6 +616,17 @@ async def get_professor_details(professor_name: str):
             }
     
     return {"professor": professor}
+
+@router.post("/api/gemini")
+async def gemini_endpoint(request: dict = Body(...)):
+    """Handle requests to the Gemini AI model."""
+    prompt = request.get('prompt')
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Prompt is required")
+    
+    model = request.get('model')  # optional
+    result = await generate_ai_response(prompt, model)
+    return result
 
 @router.post("/api/professors/cold-email")
 async def generate_professor_email(request: dict):
