@@ -2,10 +2,55 @@ from fastapi import APIRouter, HTTPException, Body
 from typing import List, Dict
 import json
 import re
+import os
+from pathlib import Path
 from app.ai_advisor import generate_ai_response
 
 router = APIRouter()
 
+# Load courses from JSON file instead of hardcoding
+def load_courses_from_json():
+    """Load courses from the processed JSON file"""
+    try:
+        # Path to the processed courses JSON file
+        json_path = Path(__file__).parent.parent / "processing_csv" / "processed_courses_2022_onwards.json"
+        
+        if not json_path.exists():
+            # Fallback to sample file if main file doesn't exist
+            json_path = Path(__file__).parent.parent / "processing_csv" / "processed_courses_sample.json"
+            if not json_path.exists():
+                print("❌ No course data files found. Run the CSV processor first.")
+                return []
+        
+        with open(json_path, 'r', encoding='utf-8') as f:
+            courses_data = json.load(f)
+        
+        print(f"✅ Loaded {len(courses_data)} courses from {json_path.name}")
+        return courses_data
+        
+    except Exception as e:
+        print(f"❌ Error loading courses from JSON: {e}")
+        return []
+
+def get_all_courses():
+    """Helper function to get all courses from JSON file"""
+    return load_courses_from_json()
+
+def enhance_course_data(course):
+    """Add missing fields that were in the hardcoded data but not in processed data"""
+    enhanced = course.copy()
+    
+    # Add fields that were in hardcoded data but might be missing in processed data
+    enhanced.setdefault('short_title', course.get('title', ''))
+    # Remove description since it's not available
+    enhanced.setdefault('credits', 4.0)  # Assume 4 credits for every course
+    enhanced.setdefault('component', 'LEC')  # Default to Lecture
+    enhanced.setdefault('repeatable', False)
+    enhanced.setdefault('consent_required', False)
+    enhanced.setdefault('prerequisites', {"required": [], "recommended": []})
+    enhanced.setdefault('hub_requirements', [])
+    
+    return enhanced
 
 @router.get("/api/ai/models")
 async def list_ai_models():
@@ -23,538 +68,102 @@ async def list_ai_models():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Complete CS course data based on BU course catalog
-COURSES = [
-    {
-        "id": "102484",
-        "code": "CS 101",
-        "subject": "CS",
-        "catalog_number": "101",
-        "title": "Introduction to Computing",
-        "short_title": "Introduction to Computing",
-        "description": "Introduction to fundamental concepts of computing.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": [], "recommended": []},
-        "hub_requirements": ["QR2"],
-        "level": "Introductory"
-    },
-    {
-        "id": "102500",
-        "code": "CS 111",
-        "subject": "CS",
-        "catalog_number": "111",
-        "title": "Introduction to Computer Science 1",
-        "short_title": "Intro Computer Science 1",
-        "description": "First course for CS majors. Python programming.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": [], "recommended": []},
-        "hub_requirements": ["QR2", "CI", "CT"],
-        "level": "Introductory"
-    },
-    {
-        "id": "102504",
-        "code": "CS 112",
-        "subject": "CS",
-        "catalog_number": "112",
-        "title": "Introduction to Computer Science 2",
-        "short_title": "Intro Computer Science 2",
-        "description": "Data structures and algorithms.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 111"], "recommended": []},
-        "hub_requirements": ["QR2", "CI", "CT"],
-        "level": "Introductory"
-    },
-    {
-        "id": "102510",
-        "code": "CS 113",
-        "subject": "CS",
-        "catalog_number": "113",
-        "title": "Combinatoric Structures",
-        "short_title": "COMBIN STRUCS",
-        "description": "Introduction to combinatorial structures and discrete mathematics.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 111"], "recommended": []},
-        "hub_requirements": ["QR2"],
-        "level": "Introductory"
-    },
-    {
-        "id": "102519",
-        "code": "CS 210",
-        "subject": "CS",
-        "catalog_number": "210",
-        "title": "Computer Systems",
-        "short_title": "Computer Systems",
-        "description": "Hardware and software fundamentals of computer systems.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 112"], "recommended": []},
-        "hub_requirements": ["QR2"],
-        "level": "Intermediate"
-    },
-    {
-        "id": "102533",
-        "code": "CS 305",
-        "subject": "CS",
-        "catalog_number": "305",
-        "title": "Introduction to Automata Theory and Formal Languages",
-        "short_title": "AUTO&FORM LANG",
-        "description": "Automata theory, formal languages, and computability.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 112", "CS 113"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Intermediate"
-    },
-    {
-        "id": "102536",
-        "code": "CS 320",
-        "subject": "CS",
-        "catalog_number": "320",
-        "title": "Concepts of Programming Languages",
-        "short_title": "Concepts Programming Languages",
-        "description": "Fundamental concepts underlying programming language design and implementation.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 112"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Intermediate"
-    },
-    {
-        "id": "102538",
-        "code": "CS 330",
-        "subject": "CS",
-        "catalog_number": "330",
-        "title": "Introduction to Analysis of Algorithms",
-        "short_title": "Analysis of Algorithms",
-        "description": "Algorithm design and analysis.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 112", "CS 113"], "recommended": []},
-        "hub_requirements": ["QR2", "CT"],
-        "level": "Advanced"
-    },
-    {
-        "id": "102540",
-        "code": "CS 332",
-        "subject": "CS",
-        "catalog_number": "332",
-        "title": "Elements of the Theory of Computation",
-        "short_title": "Elements Theory of Computation",
-        "description": "Theoretical foundations of computer science.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 330"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Advanced"
-    },
-    {
-        "id": "102549",
-        "code": "CS 402",
-        "subject": "CS",
-        "catalog_number": "402",
-        "title": "Senior Independent Work",
-        "short_title": "SR INDEP WORK",
-        "description": "Independent research project for seniors.",
-        "credits": 4.0,
-        "component": "IND",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": [], "recommended": []},
-        "hub_requirements": [],
-        "level": "Advanced"
-    },
-    {
-        "id": "102551",
-        "code": "CS 410",
-        "subject": "CS",
-        "catalog_number": "410",
-        "title": "Advanced Software Systems",
-        "short_title": "ADV SOFTWRE SYS",
-        "description": "Advanced topics in software engineering and system design.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 210"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Advanced"
-    },
-    {
-        "id": "102555",
-        "code": "CS 420",
-        "subject": "CS",
-        "catalog_number": "420",
-        "title": "Introduction to Parallel Computing",
-        "short_title": "INTRO PAR COMP",
-        "description": "Parallel algorithms, architectures, and programming.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 210"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Advanced"
-    },
-    {
-        "id": "102561",
-        "code": "CS 450",
-        "subject": "CS",
-        "catalog_number": "450",
-        "title": "Computer Architecture I",
-        "short_title": "COMP ARCH 1",
-        "description": "Computer organization and architecture fundamentals.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 210"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Advanced"
-    },
-    {
-        "id": "102572",
-        "code": "CS 480",
-        "subject": "CS",
-        "catalog_number": "480",
-        "title": "Introduction to Computer Graphics",
-        "short_title": "INTR COMP GRAPH",
-        "description": "Fundamentals of computer graphics and visualization.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 112"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Advanced"
-    },
-    {
-        "id": "102574",
-        "code": "CS 491",
-        "subject": "CS",
-        "catalog_number": "491",
-        "title": "Directed Study",
-        "short_title": "Directed Study",
-        "description": "Directed independent study in computer science.",
-        "credits": 1.0,
-        "component": "IND",
-        "repeatable": True,
-        "consent_required": False,
-        "prerequisites": {"required": [], "recommended": []},
-        "hub_requirements": [],
-        "level": "Advanced"
-    },
-    {
-        "id": "102576",
-        "code": "CS 492",
-        "subject": "CS",
-        "catalog_number": "492",
-        "title": "Directed Study",
-        "short_title": "Directed Study",
-        "description": "Directed independent study in computer science.",
-        "credits": 1.0,
-        "component": "IND",
-        "repeatable": True,
-        "consent_required": False,
-        "prerequisites": {"required": [], "recommended": []},
-        "hub_requirements": [],
-        "level": "Advanced"
-    },
-    {
-        "id": "102586",
-        "code": "CS 511",
-        "subject": "CS",
-        "catalog_number": "511",
-        "title": "Formal Methods 1",
-        "short_title": "FORML METHODS 1",
-        "description": "Formal methods for software verification and validation.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 112"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Graduate"
-    },
-    {
-        "id": "102594",
-        "code": "CS 520",
-        "subject": "CS",
-        "catalog_number": "520",
-        "title": "Programming Languages",
-        "short_title": "PROG LANGUAGES",
-        "description": "Advanced topics in programming language design and implementation.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 320"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Graduate"
-    },
-    {
-        "id": "102597",
-        "code": "CS 525S",
-        "subject": "CS",
-        "catalog_number": "525S",
-        "title": "Compiler Design Theory",
-        "short_title": "COMPILER DESIGN",
-        "description": "Theory and practice of compiler design.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 320"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Graduate"
-    },
-    {
-        "id": "102598",
-        "code": "CS 525",
-        "subject": "CS",
-        "catalog_number": "525",
-        "title": "Compiler Design Theory",
-        "short_title": "Compiler Design Theory",
-        "description": "Theory and practice of compiler design.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 320"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Graduate"
-    },
-    {
-        "id": "102602",
-        "code": "CS 530",
-        "subject": "CS",
-        "catalog_number": "530",
-        "title": "Advanced Algorithms",
-        "short_title": "ADV ALGORITHMS",
-        "description": "Advanced algorithm design and analysis techniques.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 330"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Graduate"
-    },
-    {
-        "id": "102607",
-        "code": "CS 535",
-        "subject": "CS",
-        "catalog_number": "535",
-        "title": "Complexity Theory",
-        "short_title": "COMPLEXITY",
-        "description": "Computational complexity and intractability.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 330"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Graduate"
-    },
-    {
-        "id": "102611",
-        "code": "CS 538",
-        "subject": "CS",
-        "catalog_number": "538",
-        "title": "Fundamentals of Cryptography",
-        "short_title": "CRYPTOGRAPHY",
-        "description": "Mathematical foundations and applications of cryptography.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 330"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Graduate"
-    },
-    {
-        "id": "102615",
-        "code": "CS 540",
-        "subject": "CS",
-        "catalog_number": "540",
-        "title": "Artificial Intelligence",
-        "short_title": "ARTIFIC INTELL",
-        "description": "Fundamental concepts and techniques in artificial intelligence.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 112"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Graduate"
-    },
-    {
-        "id": "102620",
-        "code": "CS 545",
-        "subject": "CS",
-        "catalog_number": "545",
-        "title": "Natural Language Processing",
-        "short_title": "NAT LANG PROC",
-        "description": "Computational approaches to natural language understanding.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 112"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Graduate"
-    },
-    {
-        "id": "102627",
-        "code": "CS 550",
-        "subject": "CS",
-        "catalog_number": "550",
-        "title": "Computer Architecture II",
-        "short_title": "COMP ARCH 2",
-        "description": "Advanced computer architecture topics.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 450"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Graduate"
-    },
-    {
-        "id": "102632",
-        "code": "CS 552",
-        "subject": "CS",
-        "catalog_number": "552",
-        "title": "Introduction to Operating Systems",
-        "short_title": "Intro to Operating Systems",
-        "description": "Design and implementation of operating systems.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 210"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Graduate"
-    },
-    {
-        "id": "102637",
-        "code": "CS 555",
-        "subject": "CS",
-        "catalog_number": "555",
-        "title": "Computer Networks",
-        "short_title": "COMP NETWORKS",
-        "description": "Design and analysis of computer networks.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 210"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Graduate"
-    },
-    {
-        "id": "102643",
-        "code": "CS 560",
-        "subject": "CS",
-        "catalog_number": "560",
-        "title": "Introduction to Database Systems",
-        "short_title": "INT DATABASE SY",
-        "description": "Database design, implementation, and management.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 112"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Graduate"
-    },
-    {
-        "id": "102654",
-        "code": "CS 585",
-        "subject": "CS",
-        "catalog_number": "585",
-        "title": "Image and Video Computing",
-        "short_title": "IMAGEVIDEO COM",
-        "description": "Computer vision and image processing.",
-        "credits": 4.0,
-        "component": "LEC",
-        "repeatable": False,
-        "consent_required": False,
-        "prerequisites": {"required": ["CS 112"], "recommended": []},
-        "hub_requirements": [],
-        "level": "Graduate"
-    },
-    {
-        "id": "102656",
-        "code": "CS 591",
-        "subject": "CS",
-        "catalog_number": "591",
-        "title": "Topics in Computer Science",
-        "short_title": "COMP SCI TOPICS",
-        "description": "Advanced topics in computer science (varies by semester).",
-        "credits": 0.5,
-        "component": "LEC",
-        "repeatable": True,
-        "consent_required": False,
-        "prerequisites": {"required": [], "recommended": []},
-        "hub_requirements": [],
-        "level": "Graduate"
-    }
-]
-
-def get_all_courses():
-    """Helper function to get all courses"""
-    return COURSES
-
 @router.get("/api/courses/")
 async def list_courses():
-    """Get all courses"""
-    return {"courses": COURSES, "total": len(COURSES)}
+    """Get all courses from JSON file"""
+    courses = get_all_courses()
+    enhanced_courses = [enhance_course_data(course) for course in courses]
+    return {"courses": enhanced_courses, "total": len(enhanced_courses)}
 
-@router.get("/api/courses/{course_code}")
-async def get_course(course_code: str):
-    """Get a specific course by code"""
-    course = next((c for c in COURSES if c["code"] == course_code), None)
+@router.get("/api/courses/{course_id}")
+async def get_course(course_id: str):
+    """Get a specific course by ID"""
+    courses = get_all_courses()
+    course = next((c for c in courses if c["id"] == course_id), None)
+    if not course:
+        # Also try searching by code as fallback
+        course = next((c for c in courses if c.get("code") == course_id), None)
+    
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
-    return course
+    
+    return enhance_course_data(course)
 
 @router.get("/api/courses/search/")
-async def search_courses(q: str = ""):
-    """Search courses by query"""
-    if not q:
-        return {"courses": COURSES, "total": len(COURSES)}
+async def search_courses(q: str = "", department: str = None, level: str = None):
+    """Search courses by query with optional filters"""
+    courses = get_all_courses()
     
-    query = q.lower()
-    results = [
-        c for c in COURSES
-        if query in c["code"].lower()
-        or query in c["title"].lower()
-        or query in c["description"].lower()
-    ]
+    if not q and not department and not level:
+        enhanced_courses = [enhance_course_data(course) for course in courses]
+        return {"courses": enhanced_courses, "total": len(enhanced_courses)}
+    
+    query = q.lower() if q else ""
+    results = []
+    
+    for course in courses:
+        # Text search
+        text_match = True
+        if query:
+            text_match = (
+                query in course.get("code", "").lower() or
+                query in course.get("title", "").lower() or
+                query in course.get("subject", "").lower() or
+                query in course.get("catalog_number", "").lower() or
+                query in course.get("department", "").lower()
+            )
+        
+        # Department filter
+        dept_match = True
+        if department:
+            dept_match = (
+                department.lower() in course.get("department", "").lower() or
+                department.lower() in course.get("academic_group", "").lower() or
+                department.lower() in course.get("academic_org", "").lower()
+            )
+        
+        # Level filter
+        level_match = True
+        if level:
+            level_match = level.lower() in course.get("level", "").lower()
+        
+        if text_match and dept_match and level_match:
+            results.append(enhance_course_data(course))
     
     return {"courses": results, "total": len(results)}
+
+@router.get("/api/departments/")
+async def list_departments():
+    """Get all unique departments"""
+    courses = get_all_courses()
+    departments = set()
+    
+    for course in courses:
+        dept = course.get('department')
+        if dept and dept != '':
+            departments.add(dept)
+        # Also include academic org and group as departments
+        org = course.get('academic_org')
+        if org and org != '':
+            departments.add(org)
+        group = course.get('academic_group')
+        if group and group != '':
+            departments.add(group)
+    
+    return {"departments": sorted(list(departments))}
+
+@router.get("/api/subjects/")
+async def list_subjects():
+    """Get all unique subjects"""
+    courses = get_all_courses()
+    subjects = set()
+    
+    for course in courses:
+        subject = course.get('subject')
+        if subject and subject != '':
+            subjects.add(subject)
+    
+    return {"subjects": sorted(list(subjects))}
 
 # AI Advisor endpoint
 @router.post("/api/ai-advisor/")
@@ -666,8 +275,6 @@ async def get_professor_details(professor_name: str):
             }
     
     return {"professor": professor}
-
-
 
 @router.post("/api/professors/cold-email")
 async def generate_professor_email(request: dict):
