@@ -1,4 +1,4 @@
-# DS-X: COGNITY🎓
+# DS-X: COGNIFY🎓
 
 > Navigate BU's 6,000+ courses with AI-powered insights and career guidance
 
