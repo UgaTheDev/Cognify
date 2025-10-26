@@ -52,31 +52,37 @@ def enhance_course_data(course):
     enhanced = course.copy()
     
     # Map fields to expected API structure
-    enhanced.setdefault('id', course.get('id', ''))
-    enhanced.setdefault('code', course.get('code', ''))
-    enhanced.setdefault('title', course.get('name', ''))
-    enhanced.setdefault('short_title', course.get('name', ''))
-    enhanced.setdefault('description', '')  # Not available in new format
-    enhanced.setdefault('credits', 4.0)  # Assume 4 credits
-    enhanced.setdefault('component', 'LEC')
-    enhanced.setdefault('repeatable', False)
-    enhanced.setdefault('consent_required', False)
-    enhanced.setdefault('prerequisites', {"required": [], "recommended": []})
+    enhanced['id'] = course.get('id', '')
+    enhanced['code'] = course.get('code', '')
+    enhanced['title'] = course.get('name', '')
+    enhanced['short_title'] = course.get('name', '')
+    enhanced['description'] = course.get('description', '')
+    enhanced['credits'] = course.get('credits', 4.0)
+    enhanced['component'] = 'LEC'
+    enhanced['repeatable'] = False
+    enhanced['consent_required'] = False
+    enhanced['prerequisites'] = {"required": [], "recommended": []}
     
     # Extract HUB requirements from hub_areas
     hub_requirements = list(course.get('hub_areas', {}).keys())
     enhanced['hub_requirements'] = hub_requirements
     
-    # Extract department/subject from course code
+    # Extract department/subject from course code (format: SCHOOL SUBJECT NUMBER)
     code_parts = course.get('code', '').split()
-    if len(code_parts) >= 2:
-        enhanced['department'] = code_parts[0] if len(code_parts) > 0 else ''
-        enhanced['subject'] = code_parts[1] if len(code_parts) > 1 else ''
-        enhanced['catalog_number'] = code_parts[2] if len(code_parts) > 2 else ''
+    if len(code_parts) >= 3:
+        enhanced['school'] = code_parts[0]  # First part is school (e.g., CAS, SHA)
+        enhanced['subject'] = code_parts[1]  # Second part is subject/department (e.g., CS, HF)
+        enhanced['catalog_number'] = code_parts[2]  # Third part is number
+    elif len(code_parts) >= 2:
+        enhanced['school'] = code_parts[0]
+        enhanced['subject'] = code_parts[1]
+        enhanced['catalog_number'] = ''
     else:
-        enhanced['department'] = course.get('school', '')
+        enhanced['school'] = course.get('school', '')
         enhanced['subject'] = ''
         enhanced['catalog_number'] = ''
+    
+    enhanced['department'] = enhanced['subject']
     
     enhanced['academic_group'] = course.get('school', '')
     enhanced['academic_org'] = course.get('school', '')
@@ -206,31 +212,95 @@ async def search_courses(
 
 @router.get("/api/schools/")
 async def list_schools():
-    """Get all unique schools"""
+    """Get all unique schools from actual course data"""
     courses = get_all_courses()
-    schools = set()
+    school_codes = set()
     
+    # Extract unique schools from actual course data
     for course in courses:
-        school = course.get('school')
-        if school:
-            schools.add(school)
+        code_parts = course.get('code', '').split()
+        if code_parts:
+            school_codes.add(code_parts[0])
     
-    return {"schools": sorted(list(schools))}
+    school_mapping = {
+        'CAS': 'College of Arts & Sciences',
+        'CDS': 'College of Communication',
+        'CFA': 'College of Fine Arts',
+        'CGS': 'College of General Studies',
+        'COM': 'College of Communication',
+        'ENG': 'College of Engineering',
+        'KHC': 'Kilachand Honors College',
+        'MET': 'Metropolitan College',
+        'QST': 'Questrom School of Business',
+        'SAR': 'Sargent College',
+        'SHA': 'School of Hospitality Administration',
+        'SPH': 'School of Public Health',
+        'WED': 'Wheelock College'
+    }
+    
+    schools = []
+    for school_code in sorted(school_codes):
+        full_name = school_mapping.get(school_code, school_code)
+        schools.append({
+            'abbreviation': school_code,
+            'full_name': full_name,
+            'label': f'{school_code} - {full_name}'
+        })
+    
+    return {"schools": schools}
 
 @router.get("/api/departments/")
 async def list_departments():
-    """Get all unique departments (extracted from course codes)"""
+    """Get all unique departments"""
+    dept_names = {
+        'AA': 'African American Studies', 'AH': 'Art History', 'AN': 'Anthropology', 'AR': 'Archaeology', 'AS': 'Astronomy',
+        'BB': 'Biochemistry and Molecular Biology', 'BI': 'Biology', 'CC': 'Core Curriculum', 'CG': 'Classical Greek', 'CH': 'Chemistry',
+        'CI': 'Cinema and Media Studies', 'CL': 'Classical Studies', 'CS': 'Computer Science', 'EC': 'Economics', 'EE': 'Earth and Environment',
+        'BE': 'Biomedical Engineering', 'ME': 'Mechanical Engineering', 'EK': 'Engineering Core',
+        'HF': 'Hospitality and Food Management', 'RE': 'Real Estate', 'SE': 'Special Events',
+        'AC': 'Accounting', 'BA': 'Business Administration', 'FE': 'Finance and Economics', 'IS': 'Information Systems', 'MG': 'Management', 'MK': 'Marketing',
+        'EN': 'English', 'HI': 'History', 'MA': 'Mathematics', 'PH': 'Philosophy', 'PO': 'Political Science', 'PS': 'Psychology', 'PY': 'Physics', 'SO': 'Sociology',
+        'ED': 'Education', 'HD': 'Human Development', 'JO': 'Journalism', 'MU': 'Music', 'TH': 'Theatre'
+    }
+    
     courses = get_all_courses()
-    departments = set()
-    
+    dept_codes = set()
     for course in courses:
-        code = course.get('code', '')
-        if ' ' in code:
-            dept = code.split()[0]
-            if dept:
-                departments.add(dept)
+        parts = course.get('code', '').split()
+        if len(parts) >= 2:
+            dept_codes.add(parts[1])
     
-    return {"departments": sorted(list(departments))}
+    departments = [{'code': code, 'name': dept_names.get(code, code), 'label': dept_names.get(code, code)} for code in sorted(dept_codes)]
+    return {"departments": departments}
+
+@router.get("/api/departments/{school}")
+async def list_departments_by_school(school: str):
+    """Get departments for a specific school from actual course data"""
+    courses = get_all_courses()
+    dept_codes = set()
+    
+    # Extract unique departments for this school from actual course data
+    for course in courses:
+        code_parts = course.get('code', '').split()
+        if len(code_parts) >= 2:
+            course_school = code_parts[0]
+            course_dept = code_parts[1]
+            if course_school == school:
+                dept_codes.add(course_dept)
+    
+    dept_names = {
+        'AA': 'African American Studies', 'AH': 'Art History', 'AN': 'Anthropology', 'AR': 'Archaeology', 'AS': 'Astronomy',
+        'BB': 'Biochemistry and Molecular Biology', 'BI': 'Biology', 'CC': 'Core Curriculum', 'CG': 'Classical Greek', 'CH': 'Chemistry',
+        'CI': 'Cinema and Media Studies', 'CL': 'Classical Studies', 'CS': 'Computer Science', 'EC': 'Economics', 'EE': 'Earth and Environment',
+        'BE': 'Biomedical Engineering', 'ME': 'Mechanical Engineering', 'EK': 'Engineering Core',
+        'HF': 'Hospitality and Food Management', 'RE': 'Real Estate', 'SE': 'Special Events',
+        'AC': 'Accounting', 'BA': 'Business Administration', 'FE': 'Finance and Economics', 'IS': 'Information Systems', 'MG': 'Management', 'MK': 'Marketing',
+        'EN': 'English', 'HI': 'History', 'MA': 'Mathematics', 'PH': 'Philosophy', 'PO': 'Political Science', 'PS': 'Psychology', 'PY': 'Physics', 'SO': 'Sociology',
+        'ED': 'Education', 'HD': 'Human Development', 'JO': 'Journalism', 'MU': 'Music', 'TH': 'Theatre'
+    }
+    
+    departments = [{'code': code, 'name': dept_names.get(code, code), 'label': dept_names.get(code, code)} for code in sorted(dept_codes)]
+    return {"departments": departments}
 
 @router.get("/api/hub-areas/")
 async def list_hub_areas():
