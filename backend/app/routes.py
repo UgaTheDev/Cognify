@@ -224,7 +224,7 @@ async def list_schools():
     
     school_mapping = {
         'CAS': 'College of Arts & Sciences',
-        'CDS': 'College of Communication',
+        'CDS': 'College of Computing & Data Sciences',
         'CFA': 'College of Fine Arts',
         'CGS': 'College of General Studies',
         'COM': 'College of Communication',
