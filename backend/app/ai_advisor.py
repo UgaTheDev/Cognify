@@ -18,68 +18,102 @@ async def generate_ai_response(prompt: str, model: Optional[str] = None) -> dict
     if not Config.GOOGLE_API_KEY:
         raise HTTPException(status_code=400, detail="GOOGLE_API_KEY not set in environment")
     
-    # List of models to try, in order of preference
-    model_candidates = [
-        "gemini-pro",
-        "gemini-1.0-pro",
-        "chat-bison-001",
-        "text-bison-001",
-        "text-unicorn-001"
+    # Preferred models in order. We'll inspect what models are available
+    preferred = [
+        "gemini-2.0-pro", "gemini-2.0-flash", "gemini-pro", "gemini-1.0-pro",
+        "gemini-1.5-flash", "chat-bison-001", "text-bison-001"
     ]
-    
-    # If a specific model is requested, try it first
+
+    # Try to list available models from the client to choose a supported model
+    try:
+        available = genai.list_models()
+        # `available` may be a dict or list depending on library; normalize to list of ids
+        model_ids = []
+        if isinstance(available, dict):
+            # some clients return {'models': [...]}
+            for m in available.get('models', []) or []:
+                if isinstance(m, dict) and m.get('name'):
+                    model_ids.append(m['name'])
+                elif isinstance(m, str):
+                    model_ids.append(m)
+        elif isinstance(available, list):
+            for m in available:
+                if isinstance(m, dict) and m.get('name'):
+                    model_ids.append(m['name'])
+                elif isinstance(m, str):
+                    model_ids.append(m)
+        else:
+            # fallback: stringify
+            model_ids = [str(available)]
+    except Exception as e:
+        # If listing models fails, capture the error and continue with preferred list
+        print(f"Warning: failed to list models: {e}")
+        model_ids = []
+
+    # Build candidate list: requested model first, then preferred models that appear available, then preferred list
+    candidates = []
     if model:
-        model_candidates.insert(0, model)
-    
-    # Try each model until one works
+        candidates.append(model)
+    # add intersection of preferred and available (keep order)
+    for p in preferred:
+        if model_ids and p in model_ids:
+            candidates.append(p)
+    # finally, append preferred list to try even if not listed (some clients/project configs differ)
+    for p in preferred:
+        if p not in candidates:
+            candidates.append(p)
+
     last_error = None
-    for model_name in model_candidates:
+    for candidate in candidates:
         try:
-            print(f"Trying model: {model_name}")  # Debug log
-    
-    model_found = False
-    for model_name in model_candidates:
-        try:
-            print(f"Attempting to use model: {model_name}")
-            
-            # Initialize the model
-            model_instance = genai.GenerativeModel(model_name)
-            
-            # Try to generate content
-            response = await model_instance.generate_content_async(
-                prompt,
-                generation_config={
-                    "temperature": 0.7,
-                    "top_k": 40,
-                    "top_p": 0.95,
-                    "max_output_tokens": 1024
-                }
-            )
-            
-            # If we get here, the model worked
-            model_found = True
-            
+            print(f"Attempting model: {candidate}")
+            model_instance = genai.GenerativeModel(candidate)
+            # Try async generation if available
+            try:
+                response = await model_instance.generate_content_async(
+                    prompt,
+                    generation_config={
+                        "temperature": 0.7,
+                        "top_k": 40,
+                        "top_p": 0.95,
+                        "max_output_tokens": 1024
+                    }
+                )
+            except AttributeError:
+                # Fallback to sync method
+                response = model_instance.generate_content(prompt)
+
             # Extract text
-            if response.text:
-                print(f"Success with model: {model_name}")
-                return {"result": response.text.strip()}
-            
-            # Handle cases where no text is returned
-            feedback = response.prompt_feedback or "No text content found in response."
-            return {"result": str(feedback)}
-            
+            text = None
+            if hasattr(response, 'text') and response.text:
+                text = response.text
+            elif isinstance(response, dict):
+                # some clients return dict shapes
+                # look for candidates -> content -> parts -> text
+                candidates_resp = response.get('candidates') or response.get('outputs') or response.get('output')
+                if isinstance(candidates_resp, list) and candidates_resp:
+                    first = candidates_resp[0]
+                    if isinstance(first, dict):
+                        # content.parts.text
+                        content = first.get('content') or first
+                        parts = content.get('parts') if isinstance(content, dict) else None
+                        if parts and isinstance(parts, list) and parts[0].get('text'):
+                            text = parts[0]['text']
+                # fallback to stringifying
+                if not text:
+                    text = json.dumps(response)
+
+            if text:
+                return {"result": str(text).strip(), "model": candidate}
+
+            last_error = "no text in response"
         except Exception as e:
             last_error = str(e)
-            print(f"Failed with model {model_name}: {last_error}")
-            continue  # Try next model
-    
-    # If we get here, no models worked
-    error_message = f"No available models found. Last error: {last_error}"
-    print(f"All models failed: {error_message}")
-    raise HTTPException(
-        status_code=404,
-        detail=error_message
-    )
+            print(f"Model {candidate} failed: {last_error}")
+            continue
+
+    # nothing worked
+    raise HTTPException(status_code=404, detail=f"No usable models available. Last error: {last_error}")
 
 def get_career_recommendations(
     career_goal: str,
@@ -134,46 +168,54 @@ Return your response in this JSON format:
 Only return the JSON, no other text.
 """
 
-    # List of models to try
+    # List of models to try for career recommendations
     model_candidates = [
+        "gemini-2.0-pro",
+        "gemini-2.0-flash",
         "gemini-pro",
         "gemini-1.0-pro",
         "chat-bison-001",
-        "text-bison-001",
-        "text-unicorn-001"
+        "text-bison-001"
     ]
-    
+
+    response_text = None
+    last_error = None
     for model_name in model_candidates:
         try:
             print(f"Trying career recommendations with model: {model_name}")
             model = genai.GenerativeModel(model_name)
-            response = model.generate_content(prompt)
-            response_text = response.text
-            
-            # If we get here, we found a working model
+            # Use synchronous generation here (this function is sync)
+            try:
+                resp = model.generate_content(prompt)
+            except Exception as e:
+                # Some clients may raise; capture and continue
+                raise
+
+            # Extract text if present
+            response_text = getattr(resp, 'text', None) or (resp.get('text') if isinstance(resp, dict) else None) or str(resp)
             print(f"Successfully generated career recommendations with model: {model_name}")
             break
-            
+
         except Exception as e:
-            print(f"Failed with model {model_name}: {str(e)}")
+            last_error = str(e)
+            print(f"Failed with model {model_name}: {last_error}")
             response_text = None
             continue
-    
+
     if not response_text:
         return {
             "error": "No available AI models found",
-            "message": "Please check your API key and enabled models."
+            "message": f"Please check your API key and enabled models. Last error: {last_error}"
         }
-        
-        # Extract JSON from response
+
+    # Extract JSON from response
+    try:
         json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
         if json_match:
             return json.loads(json_match.group())
-        
         return {"error": "Could not parse AI response", "raw_response": response_text}
-        
     except Exception as e:
         return {
             "error": str(e),
-            "message": "Failed to get AI recommendations. Check your API key."
+            "message": "Failed to parse AI response"
         }

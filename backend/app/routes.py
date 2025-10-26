@@ -1,8 +1,27 @@
 from fastapi import APIRouter, HTTPException, Body
 from typing import List, Dict
+import json
+import re
 from app.ai_advisor import generate_ai_response
 
 router = APIRouter()
+
+
+@router.get("/api/ai/models")
+async def list_ai_models():
+    """Return available AI models from the configured Google client for debugging."""
+    try:
+        import google.generativeai as genai
+        from app.config import Config
+
+        if not Config.GOOGLE_API_KEY:
+            raise HTTPException(status_code=400, detail="GOOGLE_API_KEY not configured on server")
+
+        genai.configure(api_key=Config.GOOGLE_API_KEY)
+        models = genai.list_models()
+        return {"models": models}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Complete CS course data based on BU course catalog
 COURSES = [
@@ -542,7 +561,7 @@ async def search_courses(q: str = ""):
 async def ai_career_advisor(request: dict):
     """AI-powered career advisor"""
     from app.ai_advisor import get_career_recommendations
-    
+
     career_goal = request.get("career_goal", "")
     major = request.get("major", "Computer Science")
     
@@ -580,7 +599,38 @@ async def gemini_endpoint(body: dict = Body(...)):
         raise HTTPException(status_code=400, detail="Prompt is required")
     
     model = body.get('model')  # optional
+    # Log incoming prompt for debugging (avoid logging sensitive data in production)
+    print(f"/api/gemini/ called; model={model}")
     result = await generate_ai_response(prompt, model)
+
+    # `generate_ai_response` returns {'result': text, ...} on success.
+    # If the text itself contains JSON (e.g., career recommendation JSON), parse and return it
+    text = None
+    if isinstance(result, dict):
+        text = result.get('result')
+    elif isinstance(result, str):
+        text = result
+
+    if text:
+        # Try to parse JSON blob from the text
+        try:
+            parsed = json.loads(text)
+            # If parsed is a dict and contains career recommendation keys, return it as structured JSON
+            if isinstance(parsed, dict):
+                return parsed
+            # otherwise return as-is
+            return {"result": parsed, "model": result.get('model') if isinstance(result, dict) else None}
+        except Exception:
+            # Not a plain JSON body; try to extract JSON substring
+            try:
+                m = re.search(r"\{.*\}", text, re.DOTALL)
+                if m:
+                    parsed = json.loads(m.group())
+                    if isinstance(parsed, dict):
+                        return parsed
+            except Exception:
+                pass
+
     return result
 
 @router.get("/api/professors/{professor_name}")
@@ -617,16 +667,7 @@ async def get_professor_details(professor_name: str):
     
     return {"professor": professor}
 
-@router.post("/api/gemini")
-async def gemini_endpoint(request: dict = Body(...)):
-    """Handle requests to the Gemini AI model."""
-    prompt = request.get('prompt')
-    if not prompt:
-        raise HTTPException(status_code=400, detail="Prompt is required")
-    
-    model = request.get('model')  # optional
-    result = await generate_ai_response(prompt, model)
-    return result
+
 
 @router.post("/api/professors/cold-email")
 async def generate_professor_email(request: dict):

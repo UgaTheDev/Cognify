@@ -8,7 +8,7 @@ import { callGemini } from '../services/api'
 
 function PromptBox() {
   const [promptText, setPromptText] = useState<string>('')
-  const [response, setResponse] = useState<string>('')
+  const [response, setResponse] = useState<any>('')
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,13 +28,23 @@ function PromptBox() {
       if (data.error) {
         throw new Error(data.error.message || JSON.stringify(data.error))
       }
-      
-      if (data.result) {
-        setResponse(String(data.result))
+
+      // If backend returned a structured object (e.g., career recommendations), keep it
+      if (typeof data === 'object' && (data.recommended_courses || data.career_analysis || data.result === undefined)) {
+        setResponse(data)
+      } else if (data.result && typeof data.result === 'string') {
+        // Try to parse JSON embedded in the result text
+        try {
+          const parsed = JSON.parse(data.result)
+          setResponse(parsed)
+        } catch (_e) {
+          // Not JSON, just show text
+          setResponse(String(data.result))
+        }
       } else if (data.output) {
-        setResponse(JSON.stringify(data.output))
+        setResponse(data.output)
       } else {
-        setResponse(JSON.stringify(data))
+        setResponse(data)
       }
     } catch (err: any) {
       const errorMessage = err?.response?.data?.detail || 
@@ -89,11 +99,56 @@ function PromptBox() {
           {loading ? (
             <div className="text-gray-500 italic">Thinking...</div>
           ) : response ? (
-            <div className="prose max-w-none">
-              <div className="text-gray-800 text-base leading-relaxed whitespace-pre-wrap">
-                {response}
+            typeof response === 'object' ? (
+              // Render career recommendation-like structured response
+              <div className="space-y-4">
+                {response.career_analysis && (
+                  <div className="text-gray-800 text-base leading-relaxed">
+                    <div className="font-semibold mb-2">Analysis</div>
+                    <div>{response.career_analysis}</div>
+                  </div>
+                )}
+
+                {response.required_skills && (
+                  <div>
+                    <div className="font-semibold">Required Skills</div>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {response.required_skills.map((s: string) => (
+                        <span key={s} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {response.recommended_courses && (
+                  <div>
+                    <div className="font-semibold mb-2">Recommended Courses</div>
+                    <div className="space-y-2">
+                      {response.recommended_courses.map((rc: any, idx: number) => (
+                        <div key={idx} className="p-3 border rounded-lg bg-gray-50">
+                          <div className="font-bold">{rc.code}</div>
+                          {rc.relevance && <div className="text-sm text-gray-700">{rc.relevance}</div>}
+                          {rc.skills_taught && (
+                            <div className="mt-2 text-xs text-gray-600">Skills: {rc.skills_taught.join(', ')}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Fallback: show raw JSON */}
+                {!response.career_analysis && !response.recommended_courses && (
+                  <pre className="whitespace-pre-wrap text-sm text-gray-800">{JSON.stringify(response, null, 2)}</pre>
+                )}
               </div>
-            </div>
+            ) : (
+              <div className="prose max-w-none">
+                <div className="text-gray-800 text-base leading-relaxed whitespace-pre-wrap">
+                  {response}
+                </div>
+              </div>
+            )
           ) : (
             <div className="text-gray-400 italic">
               No response yet. Try asking a question above.
