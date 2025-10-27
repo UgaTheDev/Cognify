@@ -1,31 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  Briefcase,
   Award,
   Sparkles,
   Loader,
   MessageCircle,
   AlertCircle,
+  Building2,
+  X,
 } from "lucide-react";
 import { api } from "../services/api";
 
-// Define proper TypeScript interfaces
-interface BaseCourse {
-  id: string;
-  code: string;
-  title: string;
-  credits: number;
-  level: string;
-  description?: string;
-  school?: string;
-  hub_requirements?: string[];
-}
-
-interface RecommendedCourse extends BaseCourse {
-  relevance?: string;
-  skillsTaught?: string[];
-}
-
+// Types
 interface Course {
   id: string;
   code: string;
@@ -35,6 +20,25 @@ interface Course {
   description?: string;
   school?: string;
   hub_requirements?: string[];
+}
+
+interface RecommendedCourse {
+  id: string;
+  code: string;
+  title: string;
+  credits: number;
+  level: string;
+  description?: string;
+  school?: string;
+  hub_requirements?: string[];
+  relevance: string;
+  skillsTaught: string[];
+}
+
+interface School {
+  code: string;
+  name: string;
+  course_count: number;
 }
 
 interface CareerRecommenderProps {
@@ -47,8 +51,11 @@ interface AIResponse {
   required_skills?: string[];
   recommended_courses?: Array<{
     code: string;
+    name?: string;
+    school?: string;
     relevance: string;
     skills_taught: string[];
+    match_score?: number;
   }>;
   skill_coverage_percentage?: number;
   additional_advice?: string;
@@ -70,26 +77,118 @@ export default function UniversalCareerRecommender({
   const [chatLoading, setChatLoading] = useState(false);
   const [error, setError] = useState<string>("");
 
-  // Get recommended courses based on AI
+  // NEW: School filtering state
+  const [availableSchools, setAvailableSchools] = useState<School[]>([]);
+  const [selectedSchools, setSelectedSchools] = useState<string[]>([]);
+  const [showSchoolDropdown, setShowSchoolDropdown] = useState(false);
+
+  // Fetch available schools on component mount
+  useEffect(() => {
+    const fetchSchools = async () => {
+      try {
+        const response = await api.get("/api/schools");
+        if (response.data.schools) {
+          setAvailableSchools(response.data.schools);
+        }
+      } catch (error) {
+        console.error("Error fetching schools:", error);
+      }
+    };
+    fetchSchools();
+  }, []);
+
+  // Toggle school selection
+  const toggleSchool = (schoolCode: string) => {
+    setSelectedSchools((prev) =>
+      prev.includes(schoolCode)
+        ? prev.filter((s) => s !== schoolCode)
+        : [...prev, schoolCode]
+    );
+  };
+
+  // Clear all school filters
+  const clearSchoolFilters = () => {
+    setSelectedSchools([]);
+  };
+
   const getRecommendedCourses = (): RecommendedCourse[] => {
     if (aiRecommendations?.recommended_courses) {
+      console.log(
+        "Raw AI recommendations:",
+        aiRecommendations.recommended_courses
+      );
+
       return aiRecommendations.recommended_courses
-        .map((rec) => {
-          // Find course by code - more flexible matching
-          const course = allCourses.find(
-            (c) =>
-              c.code === rec.code ||
-              c.code.replace(/\s+/g, " ") === rec.code.replace(/\s+/g, " ") ||
-              c.code.includes(rec.code) ||
-              rec.code.includes(c.code)
-          );
-          return course
-            ? {
-                ...course,
-                relevance: rec.relevance,
-                skillsTaught: rec.skills_taught,
-              }
-            : null;
+        .map((rec, index) => {
+          console.log(`Processing course ${index + 1}:`, rec);
+
+          // Skip if missing essential data
+          if (!rec.code || rec.code.trim() === "" || rec.code === "0") {
+            console.warn(`Skipping course ${index + 1}: invalid code`, rec);
+            return null;
+          }
+
+          // Try to find course in allCourses with STRICT matching
+          const course = allCourses.find((c) => {
+            // Skip invalid courses in allCourses
+            if (!c.code || c.code === "0" || c.code.trim() === "") {
+              return false;
+            }
+
+            // Normalize both codes for comparison
+            const normalizedAllCourse = c.code
+              .replace(/\s+/g, " ")
+              .trim()
+              .toLowerCase();
+            const normalizedRecCourse = rec.code
+              .replace(/\s+/g, " ")
+              .trim()
+              .toLowerCase();
+
+            // Exact match (case-insensitive, normalized spacing)
+            return normalizedAllCourse === normalizedRecCourse;
+          });
+
+          // If not found, create course from backend data
+          if (!course) {
+            // Skip if we don't have a name from backend
+            if (!rec.name || rec.name.trim() === "" || rec.name === "0") {
+              console.warn(
+                `Course ${rec.code} has no valid name, skipping`,
+                rec
+              );
+              return null;
+            }
+
+            console.log(`Creating course from backend data for ${rec.code}`);
+            return {
+              id: rec.code,
+              code: rec.code,
+              title: rec.name,
+              credits: 4,
+              level: "Undergraduate",
+              school: rec.school || "BU",
+              relevance: rec.relevance || "Relevant to your career goal",
+              skillsTaught: rec.skills_taught || [],
+            };
+          }
+
+          // Found in allCourses, merge with AI data
+          console.log(`Found ${rec.code} in allCourses as ${course.code}`);
+          const recommendedCourse: RecommendedCourse = {
+            id: course.id,
+            code: course.code,
+            title: course.title,
+            credits: course.credits,
+            level: course.level,
+            description: course.description,
+            school: course.school,
+            hub_requirements: course.hub_requirements,
+            relevance: rec.relevance || "Relevant to your career goal",
+            skillsTaught: rec.skills_taught || [],
+          };
+
+          return recommendedCourse;
         })
         .filter((course): course is RecommendedCourse => course !== null);
     }
@@ -104,7 +203,6 @@ export default function UniversalCareerRecommender({
     return 0;
   };
 
-  // Handle custom career submission - uses your existing ai_advisor.py endpoint
   const handleCustomCareerSubmit = async () => {
     if (!customCareer.trim()) return;
 
@@ -114,10 +212,13 @@ export default function UniversalCareerRecommender({
 
     try {
       console.log("Sending career goal:", customCareer);
+      console.log("School filters:", selectedSchools);
 
-      const response = await api.post("/api/ai-advisor/", {
+      const response = await api.post("/api/smart-recommend", {
         career_goal: customCareer,
         major: "Any",
+        num_recommendations: 9,
+        school_filters: selectedSchools.length > 0 ? selectedSchools : null,
       });
 
       console.log("AI Response:", response.data);
@@ -135,7 +236,7 @@ export default function UniversalCareerRecommender({
         response.data.recommended_courses.length === 0
       ) {
         throw new Error(
-          "No courses found for this career path. Try a different career goal."
+          "No courses found for this career path. Try different filters or career goal."
         );
       }
 
@@ -148,50 +249,11 @@ export default function UniversalCareerRecommender({
         error.message ||
         "Failed to connect to AI service. Please check if the backend server is running.";
       setError(errorMessage);
-
-      // Fallback: Show some basic courses if AI fails
-      if (allCourses.length > 0) {
-        const fallbackCourses = allCourses
-          .filter(
-            (course) =>
-              course.title.toLowerCase().includes(customCareer.toLowerCase()) ||
-              course.description
-                ?.toLowerCase()
-                .includes(customCareer.toLowerCase())
-          )
-          .slice(0, 6)
-          .map((course) => ({
-            code: course.code,
-            relevance: `Relevant to ${customCareer} based on course content`,
-            skills_taught: [
-              "Problem Solving",
-              "Critical Thinking",
-              "Technical Skills",
-            ],
-          }));
-
-        if (fallbackCourses.length > 0) {
-          setAiRecommendations({
-            career_analysis: `Based on your interest in ${customCareer}, here are some relevant courses from our catalog.`,
-            required_skills: [
-              "Technical Skills",
-              "Problem Solving",
-              "Communication",
-              "Collaboration",
-            ],
-            recommended_courses: fallbackCourses,
-            skill_coverage_percentage: 60,
-            additional_advice:
-              "These courses were selected based on relevance. For more specific recommendations, ensure the AI service is running.",
-          });
-        }
-      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle chat message submission - uses your existing gemini endpoint
   const handleChatSubmit = async () => {
     if (!chatMessage.trim()) return;
 
@@ -212,7 +274,6 @@ Please consider:
 Provide specific, actionable advice.`,
       });
 
-      // Handle response from your gemini endpoint
       if (response.data.result) {
         setChatResponse(response.data.result);
       } else if (typeof response.data === "string") {
@@ -237,9 +298,7 @@ Provide specific, actionable advice.`,
   const careerName = customCareer;
   const careerDescription = aiRecommendations?.career_analysis || "";
 
-  // Handle adding individual course to plan
   const handleAddCourse = (course: RecommendedCourse) => {
-    // Convert RecommendedCourse back to Course for the onAddCourse function
     const baseCourse: Course = {
       id: course.id,
       code: course.code,
@@ -253,7 +312,6 @@ Provide specific, actionable advice.`,
     onAddCourse(baseCourse);
   };
 
-  // Handle adding all recommended courses to plan
   const handleAddAllCourses = () => {
     const recommendedCourses = getRecommendedCourses();
     recommendedCourses.forEach((course) => {
@@ -337,16 +395,96 @@ Provide specific, actionable advice.`,
         </div>
       </div>
 
-      {/* Custom AI Career Input */}
+      {/* Custom AI Career Input with School Filter */}
       <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border-2 border-purple-200">
         <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
           <Sparkles className="text-purple-600" />
-          AI Custom Advisor
+          AI Course Finder
         </h3>
         <p className="text-gray-700 mb-4">
-          Enter any career path - our AI will search through all courses and
-          recommend the most relevant ones!
+          Enter any career path - search through 6,000+ BU courses with optional
+          school filters!
         </p>
+
+        {/* School Filter */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Building2 size={18} className="text-purple-600" />
+            <label className="text-sm font-medium text-gray-700">
+              Filter by School (Optional)
+            </label>
+          </div>
+
+          <div className="relative">
+            <button
+              onClick={() => setShowSchoolDropdown(!showSchoolDropdown)}
+              className="w-full px-4 py-2 bg-white border-2 border-purple-300 rounded-lg text-left flex items-center justify-between hover:border-purple-400 transition-colors"
+            >
+              <span className="text-sm text-gray-700">
+                {selectedSchools.length === 0
+                  ? "All Schools"
+                  : `${selectedSchools.length} school${
+                      selectedSchools.length > 1 ? "s" : ""
+                    } selected`}
+              </span>
+              <Building2 size={16} />
+            </button>
+
+            {showSchoolDropdown && (
+              <div className="absolute z-10 mt-2 w-full bg-white border-2 border-purple-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <div className="p-2 border-b border-gray-200">
+                  <button
+                    onClick={clearSchoolFilters}
+                    className="text-xs text-purple-600 hover:text-purple-800 font-medium"
+                  >
+                    Clear All
+                  </button>
+                </div>
+                {availableSchools.map((school) => (
+                  <label
+                    key={school.code}
+                    className="flex items-center gap-2 px-4 py-2 hover:bg-purple-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedSchools.includes(school.code)}
+                      onChange={() => toggleSchool(school.code)}
+                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm text-gray-700 flex-1">
+                      {school.code}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {school.course_count} courses
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Selected Schools Pills */}
+          {selectedSchools.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {selectedSchools.map((school) => (
+                <span
+                  key={school}
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm"
+                >
+                  {school}
+                  <button
+                    onClick={() => toggleSchool(school)}
+                    className="hover:bg-purple-200 rounded-full p-0.5"
+                  >
+                    <X size={14} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Career Input */}
         <div className="flex gap-3">
           <input
             type="text"
@@ -369,20 +507,25 @@ Provide specific, actionable advice.`,
             ) : (
               <>
                 <Sparkles size={20} />
-                Get Recommendations
+                Find Courses
               </>
             )}
           </button>
         </div>
         {customCareer && !loading && (
           <div className="mt-3 text-sm text-gray-600">
-            Ready to search for courses related to:{" "}
-            <strong>"{customCareer}"</strong>
+            Searching for: <strong>"{customCareer}"</strong>
+            {selectedSchools.length > 0 && (
+              <>
+                {" "}
+                in <strong>{selectedSchools.join(", ")}</strong>
+              </>
+            )}
           </div>
         )}
       </div>
 
-      {/* Recommendations Display */}
+      {/* Recommendations Display - Same as before */}
       {aiRecommendations && (
         <div className="space-y-6 animate-in fade-in duration-500">
           {/* Career Info */}
@@ -445,76 +588,74 @@ Provide specific, actionable advice.`,
               courses)
             </h5>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {getRecommendedCourses().map(
-                (course: RecommendedCourse, index: number) => (
-                  <div
-                    key={course.id}
-                    className="bg-white rounded-xl p-4 border-2 border-gray-200 hover:border-red-300 hover:shadow-lg transition-all"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <div className="text-xs text-gray-500 font-medium">
-                          Course {index + 1}
-                        </div>
-                        <div className="font-bold text-lg text-gray-900">
-                          {course.code}
-                        </div>
-                        <div className="text-sm text-gray-600 mt-1">
-                          {course.title}
-                        </div>
+              {getRecommendedCourses().map((course, index) => (
+                <div
+                  key={course.id}
+                  className="bg-white rounded-xl p-4 border-2 border-gray-200 hover:border-purple-300 hover:shadow-lg transition-all"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <div className="text-xs text-gray-500 font-medium">
+                        Course {index + 1}
                       </div>
-                      <button
-                        onClick={() => handleAddCourse(course)}
-                        className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold transition-colors"
-                      >
-                        Add +
-                      </button>
+                      <div className="font-bold text-lg text-gray-900">
+                        {course.code}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        {course.title}
+                      </div>
                     </div>
-
-                    {/* AI Relevance Explanation */}
-                    {course.relevance && (
-                      <div className="mt-3 p-2 bg-purple-50 rounded-lg border border-purple-200">
-                        <div className="text-xs font-medium text-purple-900 mb-1">
-                          Why this course?
-                        </div>
-                        <div className="text-xs text-purple-800">
-                          {course.relevance}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Skills */}
-                    {course.skillsTaught && course.skillsTaught.length > 0 && (
-                      <div className="mt-3">
-                        <div className="text-xs font-medium text-gray-600 mb-1">
-                          Skills you'll learn:
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {course.skillsTaught.map((skill: string) => (
-                            <span
-                              key={skill}
-                              className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs"
-                            >
-                              {skill}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex justify-between items-center mt-3">
-                      <div className="text-xs text-gray-500">
-                        {course.credits} credits
-                      </div>
-                      {course.school && (
-                        <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                          {course.school}
-                        </div>
-                      )}
-                    </div>
+                    <button
+                      onClick={() => handleAddCourse(course)}
+                      className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold transition-colors flex-shrink-0"
+                    >
+                      Add +
+                    </button>
                   </div>
-                )
-              )}
+
+                  {/* AI Relevance Explanation */}
+                  {course.relevance && (
+                    <div className="mt-3 p-2 bg-purple-50 rounded-lg border border-purple-200">
+                      <div className="text-xs font-medium text-purple-900 mb-1">
+                        Why this course?
+                      </div>
+                      <div className="text-xs text-purple-800">
+                        {course.relevance}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Skills */}
+                  {course.skillsTaught && course.skillsTaught.length > 0 && (
+                    <div className="mt-3">
+                      <div className="text-xs font-medium text-gray-600 mb-1">
+                        Skills you'll learn:
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {course.skillsTaught.map((skill) => (
+                          <span
+                            key={skill}
+                            className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center mt-3">
+                    <div className="text-xs text-gray-500">
+                      {course.credits} credits
+                    </div>
+                    {course.school && (
+                      <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                        {course.school}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -529,9 +670,9 @@ Provide specific, actionable advice.`,
             </p>
             <button
               onClick={handleAddAllCourses}
-              className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-bold hover:shadow-lg transition-all"
+              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-bold hover:shadow-lg transition-all"
             >
-              Add All to My Plan
+              Add All {getRecommendedCourses().length} Courses to My Plan
             </button>
           </div>
         </div>
